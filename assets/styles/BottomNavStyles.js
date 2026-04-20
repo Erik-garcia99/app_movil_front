@@ -51,7 +51,6 @@ export const image= StyleSheet.create({
 
   log_image :{
     resizeMode:"contain",
-    // position: 'absolute',
     width:200,
     height:100,
     left: '50%',
@@ -61,11 +60,8 @@ export const image= StyleSheet.create({
   },
 
   icono:{
-    // position: 'absolute',
-    // Centrar horizontalmente
     left: '50%',
-    marginLeft: '-5%', // mitad del ancho (asumiendo 40px)
-    // Debajo de la imagen, por ejemplo top: 280
+    marginLeft: '-5%', 
     top: 200,
 
   }

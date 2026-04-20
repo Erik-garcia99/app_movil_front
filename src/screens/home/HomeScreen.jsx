@@ -1,86 +1,82 @@
-//esto debemos de cambiar, porque lo primero se va a tener que topar sera el login, 
-//pero creo que nos estmos matando por algo que no va haci, 
+import React from 'react';
+import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context'; 
+import { Settings, CircleUser, ChevronDown } from 'lucide-react-native';
+import { globalStyles } from '../../../assets/styles/GlobalStyles';
+import BottomNavBar from '../../components/common/BottomNavBar';
 
+export default function HomeScreen({ navigation }) {
+    const insets = useSafeAreaInsets(); 
 
-import { StatusBar } from 'expo-status-bar';
-import { useState } from 'react';
-import { View, StyleSheet, SafeAreaView } from 'react-native';
-import { SafeAreaProvider } from 'react-native-safe-area-context';
-import BottomNavBar from './src/components/common/BottomNavBar';
-
-
-
-// Importar tus pantallas existentes
-import HomeScreen from './src/screens/home/HomeScreen';
-import InventoryScreen from './src/screens/inventory/InventoryScreen'; // aunque se llame DashboardScreen, la usamos como inventario
-import AlertsScreen from './src/screens/alerts/AlertsScreen'; // recién creada
-import InsightScreen from './src/screens/insight/InsightScreen';
-import loginScreen from './src/screens/auth/LoginScreen';
-
-
-// Simulación de autenticación (cambia a false para ver login)
-const IS_LOGGED_IN = true; // Ponlo en true para probar la barra
-
-function AuthScreen() {
-  return (
-    <View style={styles.center}>
-      {/* Aquí importarías tu LoginScreen de auth/LoginScreen.jsx */}
-    </View>
-  );
-}
-
-export default function App() {
-  const [currentScreen, setCurrentScreen] = useState('home');
-
-  if (!IS_LOGGED_IN) {
     return (
-      <SafeAreaProvider style={styles.safeArea}>
-        <AuthScreen />
-        <StatusBar style="auto" />
-      </SafeAreaProvider>
-    );
-  }
+        <View style={globalStyles.container}>
 
-  const renderScreen = () => {
-    switch (currentScreen) {
-      case 'home': return <HomeScreen />;
-      case 'inventory': return <InventoryScreen />;
-      case 'alerts': return <AlertsScreen />;
-      case 'insight': return <InsightScreen />;
-      default: return <HomeScreen />;
-    }
-  };
+            <View style={{ backgroundColor: '#F5EFEB', paddingTop: insets.top }}>
+                <View style={globalStyles.topHeader}>
+                    <TouchableOpacity style={globalStyles.branchSelector}>
+                        <Text style={globalStyles.branchText}>sucursal{"\n"}central</Text>
+                        <ChevronDown size={16} color="#000" />
+                    </TouchableOpacity>
 
-  return (
-    <SafeAreaProvider style={styles.safeArea}>
-      <View style={styles.container}>
-        <View style={styles.screenContainer}>
-          {loginScreen()}
-          {renderScreen()}
+                    <View style={globalStyles.statusBadge}>
+                        <Text style={globalStyles.statusText}>Online</Text>
+                    </View>
+
+                    <View style={globalStyles.headerIcons}>
+                        <TouchableOpacity onPress={() => navigation.navigate('Settings')}>
+                            <Settings size={28} color="#000" style={{ marginRight: 15 }} />
+                        </TouchableOpacity>
+                        <CircleUser size={28} color="#000" />
+                    </View>
+                </View>
+            </View>
+
+            <View style={[globalStyles.mainContent, localStyles.centerContent]}>
+                <Text style={localStyles.title}>Bienvenido a RackIQ</Text>
+                <Text style={localStyles.subtitle}>tu solucion al{"\n"}avance tecnologico</Text>
+                <TouchableOpacity style={localStyles.createButton} onPress={() => navigation.navigate('RegisterBranch')}>
+                    <Text style={localStyles.createButtonText}>crear sucursal</Text>
+                </TouchableOpacity>
+            </View>
+
+
+            <BottomNavBar 
+                currentScreen="Home" 
+                onSelectScreen={(screen) => navigation.navigate(screen)} 
+            />
         </View>
-        <BottomNavBar currentScreen={currentScreen} onSelectScreen={setCurrentScreen} />
-      </View>
-      <StatusBar style="auto" />
-    </SafeAreaProvider>
-  );
+    );
 }
 
-const styles = StyleSheet.create({
-  safeArea: { flex: 1, backgroundColor: '#567C8D' },
-  container: { flex: 1 },
-  screenContainer: { flex: 1 },
-  center: { flex: 1, justifyContent: 'center', alignItems: 'center' },
+const localStyles = StyleSheet.create({
+    centerContent: {
+        justifyContent: 'center',
+        alignItems: 'center',
+        paddingHorizontal: 20,
+    },
+    title: {
+        fontSize: 24,
+        fontWeight: 'bold',
+        color: '#000',
+        marginBottom: 10,
+        textAlign: 'center',
+    },
+    subtitle: {
+        fontSize: 20,
+        fontWeight: 'bold',
+        color: '#000',
+        textAlign: 'center',
+        marginBottom: 40,
+    },
+    createButton: {
+        backgroundColor: '#000', // Negro absoluto como en tu Figma
+        paddingVertical: 12,
+        paddingHorizontal: 30,
+        borderRadius: 8,
+    },
+    createButtonText: {
+        color: '#FFF',
+        fontSize: 16,
+        fontWeight: '500',
+    }
 });
-
-
-/**
- * 
- * instalar icon por svg
- * 
- * import Svg, { Path } from 'react-native-svg';
-
-<Svg width={24} height={24} viewBox="0 0 24 24">
-  <Path d="M12 2C6.48 2 2 6.48..." fill="#000" />
-</Svg>
- * 
- */

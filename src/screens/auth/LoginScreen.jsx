@@ -1,80 +1,127 @@
 import { useState } from 'react';
-import { View, Text, StyleSheet, Image,TextInput, Button, Alert, TouchableOpacity, ScrollView } from 'react-native';
-import { MaterialIcons } from '@expo/vector-icons';
+import { View, Text, StyleSheet, Image, TextInput, TouchableOpacity, ScrollView, KeyboardAvoidingView, Platform } from 'react-native';
 import { CircleUser } from 'lucide-react-native';
-// import Svg, { Path } from 'react-native-svg';
-import{styles,image,font, input_label, default_buttom_scheme} from "../../../assets/styles/BottomNavStyles"
-import { SafeAreaView, SafeAreaProvider } from 'react-native-safe-area-context';
+import {COLORS} from "../../constants/colors"
+import {globalStyles} from "../../../assets/styles/GlobalStyles"
 
 
 
-
-export default function LoginScreen() {
+export default function LoginScreen({ navigation }) {
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
 
     return (
-        <ScrollView>
-            <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 32 }}>
+
+        <KeyboardAvoidingView 
+            behavior={Platform.OS === 'ios' ? 'padding' : 'height'} 
+            style={globalStyles.container} 
+        >
+            <ScrollView contentContainerStyle={globalStyles.scrollContainer}>
         
-            {/* Logo */}
-            <Image 
-                source={require('../../../assets/images/logo_rackIQ.png')}
-                style={{ width: 220, height: 100, resizeMode: 'contain', marginBottom: 48 }}
-            />
 
-            {/* Ícono */}
-            <View style={{ marginBottom: 32 }}>
-                <CircleUser size={60} color="#000" />
-            </View>
+                <Image 
+                    source={require('../../../assets/images/logo_rackIQ.png')}
+                    style={localStyles.logo}
+                />
 
-            {/* Email */}
-            <Text style={{ color: '#fff', fontSize: 14, fontWeight: '500', alignSelf: 'flex-start', marginBottom: 6 }}>
-                Correo electrónico
-            </Text>
-            <TextInput
-                style={{ backgroundColor: '#fff', borderRadius: 8, padding: 12, fontSize: 14, color: '#000', marginBottom: 16, width: '100%' }}
-                placeholder="ejemplo@correo.com"
-                placeholderTextColor="#aaa"
-                value={email}
-                onChangeText={setEmail}
-                keyboardType="email-address"
-                autoCapitalize="none"
-            />
+                <View style={localStyles.iconContainer}>
+                    <CircleUser size={80} color="#000" strokeWidth={1.5} />
+                </View>
 
-            {/* Contraseña */}
-            <Text style={{ color: '#fff', fontSize: 14, fontWeight: '500', alignSelf: 'flex-start', marginBottom: 6 }}>
-                Contraseña
-            </Text>
-            <TextInput
-                style={{ backgroundColor: '#fff', borderRadius: 8, padding: 12, fontSize: 14, color: '#000', marginBottom: 16, width: '100%' }}
-                placeholder="••••••••"
-                placeholderTextColor="#aaa"
-                value={password}
-                onChangeText={setPassword}
-                secureTextEntry={true}
-            />
-            <TouchableOpacity
-                onPress={() => Alert.alert("inicio de sesion")}
-                style={{
-                    width: '100%',
-                    padding: 14,
-                    borderRadius: 8,
-                    borderWidth: 2,
-                    backgroundColor: '#2C2C2C',
-                    alignItems: 'center',
-                    marginTop: 8,
-                }}
+                <View style={globalStyles.formCard}>
+                    
+
+                    <Text style={globalStyles.label}>Email</Text>
+                    <TextInput
+                        style={globalStyles.input}
+                        placeholder="Value"
+                        placeholderTextColor="#A3A3A3"
+                        value={email}
+                        onChangeText={setEmail}
+                        keyboardType="email-address"
+                        autoCapitalize="none"
+                    />
+
+
+                    <Text style={globalStyles.label}>Password</Text>
+                    <TextInput
+                        style={globalStyles.input}
+                        placeholder="Value"
+                        placeholderTextColor="#A3A3A3"
+                        value={password}
+                        onChangeText={setPassword}
+                        secureTextEntry={true}
+                    />
+
+
+                    <TouchableOpacity 
+                        style={localStyles.signInButton}
+                        onPress={() => navigation.navigate('Home')}>
+                        <Text style={localStyles.signInText}>Sign In</Text>
+                    </TouchableOpacity>
+
+                    <TouchableOpacity 
+                        style={localStyles.forgotPasswordButton}
+                        onPress={() => navigation.navigate('ForgotPassword')}
+                    >
+                        <Text style={localStyles.forgotPasswordText}>Forgot password?</Text>
+                    </TouchableOpacity>
+
+                </View>
+
+                <TouchableOpacity 
+                    style={localStyles.registerButton}
+                    onPress={() => navigation.navigate('Register')}
                 >
-                <Text style={{ color: '#fff', fontSize: 16, fontWeight: '600',  }}>
-                    iniciar sesion
-                </Text>
-            </TouchableOpacity>
+                    <Text style={localStyles.registerText}>registrarse</Text>
+                </TouchableOpacity>
 
-
-            </View>
-
-
-        </ScrollView>
+            </ScrollView>
+        </KeyboardAvoidingView>
     );
 }
+
+const localStyles = StyleSheet.create({
+    logo: {
+        width: 220,
+        height: 80,
+        resizeMode: 'contain',
+        marginBottom: 24,
+    },
+    iconContainer: {
+        marginBottom: 24,
+    },
+    signInButton: {
+        backgroundColor: '#2C2C2C', 
+        paddingVertical: 14,
+        borderRadius: 8,
+        alignItems: 'center',
+        marginBottom: 20,
+    },
+    signInText: {
+        color: '#FFFFFF',
+        fontSize: 16,
+        fontWeight: '600',
+    },
+    forgotPasswordButton: {
+        alignSelf: 'flex-start',
+    },
+    forgotPasswordText: {
+        color: '#1A1A1A',
+        fontSize: 14,
+        textDecorationLine: 'underline',
+    },
+    registerButton: {
+        backgroundColor: '#354A5F', // Tono azul oscuro/grisáceo del botón de abajo
+        paddingVertical: 12,
+        paddingHorizontal: 32,
+        borderRadius: 8,
+        borderWidth: 1,
+        borderColor: '#263645',
+    },
+    registerText: {
+        color: '#FFFFFF',
+        fontSize: 15,
+        fontWeight: '500',
+    }
+});
