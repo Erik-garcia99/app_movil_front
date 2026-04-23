@@ -13,7 +13,7 @@ export default function ForgotPasswordScreen({ navigation }) {
         >
             <ScrollView contentContainerStyle={localStyles.scrollContainer}>
                 
-                {/* Logo */}
+
                 <Image 
                     source={require('../../../assets/images/logo_rackIQ.png')}
                     style={localStyles.logo}
@@ -21,7 +21,6 @@ export default function ForgotPasswordScreen({ navigation }) {
 
                 <Text style={localStyles.mainText}>ingrese el correo / numero registrado</Text>
 
-                {/* Input y Botón Submit (Fila) */}
                 <View style={localStyles.inputRow}>
                     <TextInput
                         style={localStyles.input}
@@ -39,12 +38,10 @@ export default function ForgotPasswordScreen({ navigation }) {
 
                 <Text style={localStyles.subText}>corre electronico / numero telefonico</Text>
 
-                {/* Botón Enviar Correo */}
                 <TouchableOpacity style={localStyles.sendButton}>
                     <Text style={localStyles.sendButtonText}>enviar correo</Text>
                 </TouchableOpacity>
 
-                {/* Botón para regresar al login (opcional, buena práctica) */}
                 <TouchableOpacity style={localStyles.backButton} onPress={() => navigation.goBack()}>
                     <Text style={localStyles.backButtonText}>volver al login</Text>
                 </TouchableOpacity>
