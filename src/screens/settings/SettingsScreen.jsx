@@ -1,58 +1,99 @@
-import React, { useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Settings, CircleUser, ChevronDown, ArrowLeft, EyeOff, Eye } from 'lucide-react-native';
+import React, { useState, useEffect } from 'react';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Alert, ActivityIndicator } from 'react-native';
+import { ArrowLeft, EyeOff, Eye, LogOut } from 'lucide-react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { globalStyles } from '../../../assets/styles/GlobalStyles';
 import BottomNavBar from '../../components/common/BottomNavBar';
+import TopHeader from '../../components/common/TopHeader';
+import { useCurrentUser } from '../../hooks/useCurrentUser';
+import { usersAPI } from '../../api/users';
 import { COLORS } from '../../constants/colors';
 
 export default function SettingsScreen({ navigation }) {
-    const insets = useSafeAreaInsets();
+    const { userRole } = useCurrentUser();
     const [showPassword, setShowPassword] = useState(false);
+    const [userData, setUserData] = useState(null);
+    const [loading, setLoading] = useState(true);
 
-    // Dummy data para la UI
-    const userData = {
-        nombres: 'marcos',
-        apellidos: 'solis ochoa',
-        telefono: '6641234544',
-        correo: 'example@example',
-        puesto: 'general',
-        jefe: 'ricardo alvarez',
-        password: '****************'
+    useEffect(() => {
+        loadUserProfile();
+    }, []);
+
+    const loadUserProfile = async () => {
+        try {
+            const profile = await usersAPI.getCurrentUserProfile();
+            
+            // Separar nombre y apellido si es posible
+            const nameParts = profile.name ? profile.name.split(' ') : ['', ''];
+            const nombres = nameParts[0] || '';
+            const apellidos = nameParts.slice(1).join(' ') || '';
+
+            setUserData({
+                nombres: nombres,
+                apellidos: apellidos,
+                telefono: 'No disponible',
+                correo: profile.email || 'No disponible',
+                puesto: profile.role || 'No disponible',
+                jefe: profile.supervisor_name || 'Sin asignar',
+                password: '••••••••••••'
+            });
+        } catch (error) {
+            console.error('Error loading profile:', error);
+            // Usar datos por defecto si hay error
+            setUserData({
+                nombres: 'Usuario',
+                apellidos: '',
+                telefono: 'No disponible',
+                correo: 'No disponible',
+                puesto: 'No disponible',
+                jefe: 'Sin asignar',
+                password: '••••••••••••'
+            });
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const handleLogout = () => {
+        Alert.alert(
+            'Cerrar sesión',
+            '¿Estás seguro que deseas salir?',
+            [
+                { text: 'Cancelar', style: 'cancel' },
+                {
+                    text: 'Salir',
+                    style: 'destructive',
+                    onPress: async () => {
+                        await AsyncStorage.removeItem('access_token');
+                        await AsyncStorage.removeItem('user');
+                        navigation.replace('Login');
+                    }
+                }
+            ]
+        );
     };
 
     return (
         <View style={globalStyles.container}>
-            {/* Header como en Home */}
-            <View style={{ backgroundColor: '#F5EFEB', paddingTop: insets.top }}>
-                <View style={[globalStyles.topHeader, { paddingBottom: 15 }]}>
-                    <TouchableOpacity style={globalStyles.branchSelector}>
-                        <Text style={globalStyles.branchText}>sucursal{"\n"}central</Text>
-                        <ChevronDown size={16} color="#000" />
-                    </TouchableOpacity>
+            <TopHeader navigation={navigation} userRole={userRole} />
 
-                    <View style={globalStyles.statusBadge}>
-                        <Text style={styles.statusText}>Online</Text>
+            {loading ? (
+                <View style={[globalStyles.mainContent, { justifyContent: 'center', alignItems: 'center' }]}>
+                    <ActivityIndicator size="large" color="#354A5F" />
+                </View>
+            ) : !userData ? (
+                <View style={[globalStyles.mainContent, { justifyContent: 'center', alignItems: 'center' }]}>
+                    <Text style={{ fontSize: 16, color: '#666' }}>Error al cargar los datos</Text>
+                </View>
+            ) : (
+                <ScrollView contentContainerStyle={styles.scrollContent}>
+                    <View style={styles.titleContainer}>
+                        <TouchableOpacity onPress={() => navigation.goBack()}>
+                            <ArrowLeft size={28} color="#000" />
+                        </TouchableOpacity>
+                        <Text style={styles.pageTitle}>datos personales</Text>
                     </View>
 
-                    <View style={styles.headerIcons}>
-                        <Settings size={28} color="#000" style={{ marginRight: 15 }} />
-                        <CircleUser size={28} color="#000" />
-                    </View>
-                </View>
-            </View>
-
-            {/* Contenido scrolleable */}
-            <ScrollView contentContainerStyle={styles.scrollContent}>
-                {/* Botón de retroceso y Título */}
-                <View style={styles.titleContainer}>
-                    <TouchableOpacity onPress={() => navigation.goBack()}>
-                        <ArrowLeft size={28} color="#000" weight="bold" />
-                    </TouchableOpacity>
-                    <Text style={styles.pageTitle}>datos personales</Text>
-                </View>
-
-                {/* Tarjeta de datos */}
                 <View style={styles.dataCard}>
                     <View style={styles.row}>
                         <View style={styles.fieldContainer}>
@@ -87,54 +128,47 @@ export default function SettingsScreen({ navigation }) {
                         </View>
                     </View>
 
-                    {/* Contraseña */}
                     <View style={[styles.fieldContainer, { marginTop: 20 }]}>
                         <View style={styles.passwordRow}>
                             <Text style={styles.fieldValue}>
                                 {showPassword ? 'miContraseña123' : userData.password}
                             </Text>
-                            <TouchableOpacity 
+                            <TouchableOpacity
                                 onPress={() => setShowPassword(!showPassword)}
                                 style={styles.eyeIcon}
                             >
-                                {showPassword ? (
-                                    <Eye size={24} color="#000" />
-                                ) : (
-                                    <EyeOff size={24} color="#000" />
-                                )}
+                                {showPassword ? <Eye size={24} color="#000" /> : <EyeOff size={24} color="#000" />}
                             </TouchableOpacity>
                         </View>
                         <Text style={styles.fieldLabel}>contraseña</Text>
                     </View>
                 </View>
 
-                {/* Botón Actualizar */}
-                <View style={styles.buttonContainer}>
+                {/* Botones */}
+                <View style={styles.buttonsRow}>
+                    {/* Cerrar sesión */}
+                    <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
+                        <LogOut size={18} color="#FFF" style={{ marginRight: 8 }} />
+                        <Text style={styles.logoutButtonText}>cerrar sesión</Text>
+                    </TouchableOpacity>
+
+                    {/* Actualizar */}
                     <TouchableOpacity style={styles.updateButton}>
                         <Text style={styles.updateButtonText}>actualizar</Text>
                     </TouchableOpacity>
                 </View>
             </ScrollView>
+            )}
 
-            {/* Barra inferior */}
-            <BottomNavBar 
-                currentScreen="" // No hay una sección activa específica para configuración
-                onSelectScreen={(screen) => navigation.navigate(screen)} 
+            <BottomNavBar
+                currentScreen=""
+                onSelectScreen={(screen) => navigation.navigate(screen)}
             />
         </View>
     );
 }
 
 const styles = StyleSheet.create({
-    headerIcons: {
-        flexDirection: 'row',
-        alignItems: 'center',
-    },
-    statusText: {
-        fontSize: 12,
-        fontWeight: 'bold',
-        color: '#000',
-    },
     scrollContent: {
         flexGrow: 1,
         paddingHorizontal: 20,
@@ -151,10 +185,9 @@ const styles = StyleSheet.create({
         fontWeight: '900',
         color: '#000',
         marginLeft: 15,
-        fontFamily: 'System', // Cambiar a la tipografía correcta si la hay
     },
     dataCard: {
-        backgroundColor: '#F3EFE9', // Cremita
+        backgroundColor: '#F3EFE9',
         borderRadius: 12,
         padding: 30,
         width: '100%',
@@ -186,13 +219,28 @@ const styles = StyleSheet.create({
     },
     eyeIcon: {
         marginLeft: 10,
-        marginBottom: 5, // Ajuste para alinear visualmente con el texto subrayado
+        marginBottom: 5,
     },
-    buttonContainer: {
-        alignItems: 'flex-end', // Alinear a la derecha
+    buttonsRow: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+    },
+    logoutButton: {
+        backgroundColor: '#c0392b',
+        paddingVertical: 12,
+        paddingHorizontal: 20,
+        borderRadius: 8,
+        flexDirection: 'row',
+        alignItems: 'center',
+    },
+    logoutButtonText: {
+        color: '#FFF',
+        fontSize: 15,
+        fontWeight: '500',
     },
     updateButton: {
-        backgroundColor: COLORS.secondary, // Azul oscuro/grisáceo #354A5F
+        backgroundColor: COLORS.secondary,
         paddingVertical: 12,
         paddingHorizontal: 30,
         borderRadius: 8,

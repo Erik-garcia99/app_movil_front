@@ -4,32 +4,18 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Settings, CircleUser, ChevronDown } from 'lucide-react-native';
 import { globalStyles } from '../../../assets/styles/GlobalStyles';
 import BottomNavBar from '../../components/common/BottomNavBar';
+import TopHeader from '../../components/common/TopHeader';
+import { useCurrentUser } from '../../hooks/useCurrentUser';
 
 export default function HomeScreen({ navigation }) {
-    const insets = useSafeAreaInsets(); 
+    const insets = useSafeAreaInsets();
+    const { userRole } = useCurrentUser(); 
 
     return (
         <View style={globalStyles.container}>
 
-            <View style={{ backgroundColor: '#F5EFEB', paddingTop: insets.top }}>
-                <View style={globalStyles.topHeader}>
-                    <TouchableOpacity style={globalStyles.branchSelector}>
-                        <Text style={globalStyles.branchText}>sucursal{"\n"}central</Text>
-                        <ChevronDown size={16} color="#000" />
-                    </TouchableOpacity>
-
-                    <View style={globalStyles.statusBadge}>
-                        <Text style={globalStyles.statusText}>Online</Text>
-                    </View>
-
-                    <View style={globalStyles.headerIcons}>
-                        <TouchableOpacity onPress={() => navigation.navigate('Settings')}>
-                            <Settings size={28} color="#000" style={{ marginRight: 15 }} />
-                        </TouchableOpacity>
-                        <CircleUser size={28} color="#000" />
-                    </View>
-                </View>
-            </View>
+            
+            <TopHeader navigation={navigation} userRole={userRole} />
 
             <View style={[globalStyles.mainContent, localStyles.centerContent]}>
                 <Text style={localStyles.title}>Bienvenido a RackIQ</Text>

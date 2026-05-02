@@ -13,6 +13,8 @@ import InventoryScreen from '../screens/inventory/InventoryScreen';
 import AddProductScreen from '../screens/inventory/AddProductScreen';
 import AlertsScreen from '../screens/alerts/AlertsScreen';
 import InsightScreen from '../screens/insight/InsightScreen';
+import PendingScreen from '../screens/auth/PendingScreen';
+import EmployeeManagementScreen from '../screens/admin/EmployeeManagementScreen';
 
 const Stack = createNativeStackNavigator();
 
@@ -31,6 +33,8 @@ export default function AppNavigator() {
             <Stack.Screen name="AddProduct" component={AddProductScreen} />
             <Stack.Screen name="Alerts" component={AlertsScreen} />
             <Stack.Screen name="Insight" component={InsightScreen} />
+            <Stack.Screen name="Pending" component={PendingScreen} />
+            <Stack.Screen name="EmployeeManagement" component={EmployeeManagementScreen} />
         </Stack.Navigator>
         </NavigationContainer>
     );
