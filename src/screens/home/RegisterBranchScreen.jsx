@@ -4,9 +4,11 @@ import React, { useState } from 'react';
 import { View, Text, TextInput, StyleSheet, TouchableOpacity, ScrollView, ActivityIndicator } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ArrowLeft, ChevronDown, CheckCircle } from 'lucide-react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import CustomAlert from '../../components/common/CustomAlert';
+import { API_CONFIG } from '../../constants/config';
 
-const API_URL = 'http://192.168.1.66:8000/api/v1';
+const API_URL = process.env.EXPO_PUBLIC_API_URL || API_CONFIG.baseURL;
 
 export default function RegisterBranchScreen({ navigation }) {
     const insets = useSafeAreaInsets();
@@ -85,6 +87,10 @@ export default function RegisterBranchScreen({ navigation }) {
 
             if (res.status === 201) {
                 const data = await res.json();
+                
+                // ──── GUARDAR SUCURSAL COMO ACTUAL ────
+                await AsyncStorage.setItem('currentBranch', JSON.stringify(data));
+                
                 showAlert(
                     'success',
                     '¡Sucursal registrada!',

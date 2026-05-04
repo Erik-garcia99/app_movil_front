@@ -1,6 +1,7 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { API_CONFIG } from '../constants/config';
 
-const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://192.168.1.66:8000/api/v1';
+const API_BASE_URL = process.env.EXPO_PUBLIC_API_URL || API_CONFIG.baseURL;
 
 const getAuthToken = async () => {
     try {
@@ -98,6 +99,38 @@ export const usersAPI = {
             
             if (!response.ok) {
                 throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            
+            return await response.json();
+        } catch (error) {
+            throw error;
+        }
+    },
+
+    // Actualizar perfil del usuario actual (correo, teléfono, contraseña)
+    updateProfile: async (email, phoneNumber, currentPassword, newPassword) => {
+        try {
+            const token = await getAuthToken();
+            const body = {
+                current_password: currentPassword,
+            };
+            
+            if (email) body.email = email;
+            if (phoneNumber) body.phone_number = phoneNumber;
+            if (newPassword) body.new_password = newPassword;
+            
+            const response = await fetch(`${API_BASE_URL}/users/me/profile`, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`,
+                },
+                body: JSON.stringify(body),
+            });
+            
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(errorData.detail || `HTTP error! status: ${response.status}`);
             }
             
             return await response.json();

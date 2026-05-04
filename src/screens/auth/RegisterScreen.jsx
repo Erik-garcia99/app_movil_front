@@ -3,8 +3,9 @@ import { View, Text, StyleSheet, Image, TextInput, TouchableOpacity,
 ScrollView, KeyboardAvoidingView, Platform, ActivityIndicator } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import CustomAlert from '../../components/common/CustomAlert';
+import { API_CONFIG } from '../../../src/constants/config';
 
-const API_URL = 'http://192.168.1.66:8000/api/v1';
+const API_URL = process.env.EXPO_PUBLIC_API_URL || API_CONFIG.baseURL;
 
 export default function RegisterScreen({ navigation }) {
     const [fullName, setFullName]               = useState('');

@@ -8,7 +8,6 @@
     "userInterfaceStyle": "light",
     "newArchEnabled": true,
     "splash": {
-      // "image": "./assets/splash-icon.png",
       "resizeMode": "contain",
       "backgroundColor": "#ffffff"
     },
@@ -21,10 +20,16 @@
         "backgroundColor": "#ffffff"
       },
       "usesCleartextTraffic": true,
-      "edgeToEdgeEnabled": true
+      "edgeToEdgeEnabled": true,
+      "package": "com.dmrx.front_RackIQ_react"
     },
     "web": {
       "favicon": "./assets/favicon.png"
+    },
+    "extra": {
+      "eas": {
+        "projectId": "69900d3a-a2fe-44f6-8cfa-58a157da1b78"
+      }
     }
   }
 }

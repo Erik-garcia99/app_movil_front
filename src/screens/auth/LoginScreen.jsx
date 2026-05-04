@@ -3,8 +3,9 @@ import { View, Text, StyleSheet, Image, TextInput, TouchableOpacity, ScrollView,
 import { CircleUser } from 'lucide-react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { globalStyles } from "../../../assets/styles/GlobalStyles";
+import { API_CONFIG } from '../../../src/constants/config';
 
-const API_URL = 'http://192.168.1.66:8000/api/v1';
+const API_URL = process.env.EXPO_PUBLIC_API_URL || API_CONFIG.baseURL;
 
 export default function LoginScreen({ navigation }) {
     const [email, setEmail] = useState('');

@@ -7,8 +7,8 @@ import { globalStyles } from '../../../assets/styles/GlobalStyles';
 export default function TopHeader({ navigation, branchName = 'sucursal\ncentral', isOnline = true, userRole = 'staff' }) {
     const insets = useSafeAreaInsets();
     
-    // Solo mostrar icono de administración si el usuario tiene rol admin, manager, owner o superadmin
-    const canManageEmployees = ['admin', 'manager', 'owner', 'superadmin'].includes(userRole);
+    // Solo mostrar icono de administración si el usuario tiene rol admin, manager, owner o superuser
+    const canManageEmployees = ['admin', 'manager', 'owner', 'superuser'].includes(userRole);
 
     return (
         <View style={{ backgroundColor: '#F5EFEB', paddingTop: insets.top }}>
