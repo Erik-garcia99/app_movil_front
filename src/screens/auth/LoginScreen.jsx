@@ -18,7 +18,6 @@ export default function LoginScreen({ navigation }) {
         setError('');
 
         try {
-            // Obtener el token de Firebase si está disponible
             let fcmToken = null;
             try {
                 fcmToken = await AsyncStorage.getItem('fcm_token');
@@ -32,7 +31,7 @@ export default function LoginScreen({ navigation }) {
                 body: JSON.stringify({ 
                     email: email.trim(), 
                     password,
-                    push_token: fcmToken  // Enviar el token de Firebase
+                    push_token: fcmToken
                 }),
             });
 
@@ -47,9 +46,9 @@ export default function LoginScreen({ navigation }) {
                     role: data.role,
                     account_status: data.account_status,
                     organization_id: data.organization_id,
+                    branch_id: data.branch_id,   // ← NUEVO: guardar branch_id
                 }));
 
-                // Redirige según el estado de la cuenta
                 if (data.account_status === 'pending') {
                     Alert.alert(
                         'Cuenta Pendiente',
@@ -113,7 +112,6 @@ export default function LoginScreen({ navigation }) {
                         secureTextEntry={true}
                     />
 
-                    {/* Mensaje de error */}
                     {error ? (
                         <Text style={localStyles.errorText}>{error}</Text>
                     ) : null}

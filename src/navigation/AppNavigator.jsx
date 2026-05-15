@@ -11,10 +11,17 @@ import RegisterBranchScreen from '../screens/home/RegisterBranchScreen';
 import SettingsScreen from '../screens/settings/SettingsScreen';
 import InventoryScreen from '../screens/inventory/InventoryScreen';
 import AddProductScreen from '../screens/inventory/AddProductScreen';
+import NodeConfigScreen from '../screens/inventory/NodeConfigScreen';
 import AlertsScreen from '../screens/alerts/AlertsScreen';
 import InsightScreen from '../screens/insight/InsightScreen';
 import PendingScreen from '../screens/auth/PendingScreen';
 import EmployeeManagementScreen from '../screens/admin/EmployeeManagementScreen';
+import ShelfDetailScreen from '../screens/inventory/ShelfDetailScreen';
+import CalibrationScreen from '../screens/inventory/CalibrationScreen';
+import RegisterNodeScreen from '../screens/inventory/RegisterNodeScreen';
+
+
+
 
 const Stack = createNativeStackNavigator();
 
@@ -31,10 +38,15 @@ export default function AppNavigator() {
             <Stack.Screen name="Settings" component={SettingsScreen} />
             <Stack.Screen name="Inventory" component={InventoryScreen} />
             <Stack.Screen name="AddProduct" component={AddProductScreen} />
+            <Stack.Screen name="NodeConfig" component={NodeConfigScreen} />
             <Stack.Screen name="Alerts" component={AlertsScreen} />
             <Stack.Screen name="Insight" component={InsightScreen} />
             <Stack.Screen name="Pending" component={PendingScreen} />
             <Stack.Screen name="EmployeeManagement" component={EmployeeManagementScreen} />
+            <Stack.Screen name="ShelfDetail" component={ShelfDetailScreen} />
+            <Stack.Screen name="Calibration" component={CalibrationScreen} />
+            <Stack.Screen name="RegisterNode" component={RegisterNodeScreen} />
+
         </Stack.Navigator>
         </NavigationContainer>
     );

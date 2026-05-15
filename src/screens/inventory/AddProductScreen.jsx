@@ -10,7 +10,8 @@ import { useCurrentUser } from '../../hooks/useCurrentUser';
 
 export default function AddProductScreen({ navigation }) {
     const { userRole } = useCurrentUser();
-    const insets = useSafeAreaInsets(); 
+    const insets = useSafeAreaInsets();
+    const { shelfId } = route.params || {}; 
     
     // Valores nulos preparados para la API
     const [selectedNode, setSelectedNode] = useState(null);
@@ -39,6 +40,13 @@ export default function AddProductScreen({ navigation }) {
         setContactPreferences(prev => ({ ...prev, [method]: !prev[method] }));
     };
 
+    const handleNodeSelect = (node) => {
+        setSelectedNode(node);
+        // Filtrar estantes que NO tengan product_id asignado en el objeto
+        const availableShelves = node.shelves.filter(s => s.product_id === null);
+        setAvailableShelves(availableShelves);
+    };
+
     return (
         <KeyboardAvoidingView 
             behavior={Platform.OS === 'ios' ? 'padding' : 'height'} 
@@ -55,7 +63,7 @@ export default function AddProductScreen({ navigation }) {
 
             <ScrollView contentContainerStyle={localStyles.scrollContainer} showsVerticalScrollIndicator={false}>
                 
-                {/* Tarjeta 1: Seleccionar destino */}
+                {/* Tarjeta 1: Seleccionar destino
                 <View style={localStyles.card}>
                     <Text style={localStyles.cardTitle}>seleccionar destino</Text>
                     
@@ -70,7 +78,7 @@ export default function AddProductScreen({ navigation }) {
                         <Text style={localStyles.dropdownText}>{selectedShelf ? selectedShelf : 'none'}</Text>
                         <ChevronDown size={20} color="#000" />
                     </TouchableOpacity>
-                </View>
+                </View> */}
 
                 <View style={localStyles.card}>
                     <Text style={localStyles.cardTitle}>informacion basica</Text>
