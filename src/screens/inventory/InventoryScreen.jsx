@@ -173,9 +173,14 @@ export default function InventoryScreen({ navigation }) {
                     let barColor = '#D1DBE4'; // Gris por defecto
                     
                     if (hasProduct && isConfigured && shelf.is_connected) {
-                        // Aquí iría tu lógica real de (peso_actual / max_capacity) * 100
-                        percentage = 85; // Placeholder dinámico
-                        const isOptimo = percentage > (shelf.low_stock_threshold_kg ? (shelf.low_stock_threshold_kg * 1000 / shelf.max_capacity_grams * 100) : 20);
+                        // Calcular porcentaje real asegurando que no exceda 100 ni sea menor a 0
+                        let calcPercent = (shelf.current_weight_grams / shelf.max_capacity_grams) * 100;
+                        percentage = Math.max(0, Math.min(100, Math.round(calcPercent)));
+                        
+                        // Determinar umbral en gramos (si no existe, usar el 20% como default)
+                        const umbralGramos = shelf.low_stock_threshold_kg ? (shelf.low_stock_threshold_kg * 1000) : (shelf.max_capacity_grams * 0.2);
+                        const isOptimo = shelf.current_weight_grams > umbralGramos;
+                        
                         statusText = isOptimo ? 'nivel optimo' : 'nivel critico';
                         barColor = isOptimo ? '#4ADE80' : '#FDE047';
                     } else if (hasProduct && !shelf.is_connected) {

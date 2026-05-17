@@ -1,14 +1,13 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, TextInput, KeyboardAvoidingView, Platform } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, TextInput, KeyboardAvoidingView, Platform, Alert } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Settings, CircleUser, ChevronDown, ArrowLeft, CheckSquare, Square } from 'lucide-react-native';
 import { globalStyles } from '../../../assets/styles/GlobalStyles';
-import BottomNavBar from '../../components/common/BottomNavBar';
 import TopHeader from '../../components/common/TopHeader';
 import { useCurrentUser } from '../../hooks/useCurrentUser';
-
-
-export default function AddProductScreen({ navigation }) {
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { API_BASE_URL } from '../../constants/config';
+export default function AddProductScreen({ navigation, route }) {
     const { userRole } = useCurrentUser();
     const insets = useSafeAreaInsets();
     const { shelfId } = route.params || {}; 
@@ -17,6 +16,13 @@ export default function AddProductScreen({ navigation }) {
     const [selectedNode, setSelectedNode] = useState(null);
     const [selectedShelf, setSelectedShelf] = useState(null);
     const [unitType, setUnitType] = useState('Kg'); 
+    const [netWeightUnit, setNetWeightUnit] = useState('g');
+    
+    const netWeightUnits = ['g', 'Kg', 'oz', 'lb'];
+    const toggleNetWeightUnit = () => {
+        const currentIndex = netWeightUnits.indexOf(netWeightUnit);
+        setNetWeightUnit(netWeightUnits[(currentIndex + 1) % netWeightUnits.length]);
+    }; 
 
     const [formData, setFormData] = useState({
         nombre: '',
@@ -42,9 +48,56 @@ export default function AddProductScreen({ navigation }) {
 
     const handleNodeSelect = (node) => {
         setSelectedNode(node);
-        // Filtrar estantes que NO tengan product_id asignado en el objeto
         const availableShelves = node.shelves.filter(s => s.product_id === null);
         setAvailableShelves(availableShelves);
+    };
+
+    const handleSave = async () => {
+        if (!shelfId) {
+            Alert.alert("Error", "No hay un estante seleccionado.");
+            return;
+        }
+        if (!formData.nombre.trim()) {
+            Alert.alert("Error", "El nombre del producto es obligatorio.");
+            return;
+        }
+
+        try {
+            const token = await AsyncStorage.getItem('access_token');
+            const apiUrl = API_BASE_URL;
+            
+            // Convertir contenido neto a gramos
+            let weightInGrams = parseFloat(formData.contenidoNeto) || 0;
+            if (netWeightUnit === 'Kg') weightInGrams *= 1000;
+            else if (netWeightUnit === 'oz') weightInGrams *= 28.3495;
+            else if (netWeightUnit === 'lb') weightInGrams *= 453.592;
+
+            const payload = {
+                ...formData,
+                contenidoNeto: weightInGrams.toString(), // Enviamos ya en gramos
+                contactWhatsapp: contactPreferences.whatsapp,
+                contactEmail: contactPreferences.correo
+            };
+
+            const response = await fetch(`${apiUrl}/rpi/shelf/${shelfId}/assign-product`, {
+                method: 'POST',
+                headers: { 
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json' 
+                },
+                body: JSON.stringify(payload)
+            });
+
+            if (!response.ok) throw new Error("No se pudo asignar el producto.");
+            
+            Alert.alert("Éxito", "Producto asignado y guardado correctamente.", [
+                { text: "OK", onPress: () => navigation.goBack() }
+            ]);
+            
+        } catch (error) {
+            console.error(error);
+            Alert.alert("Error", "Ocurrió un error al guardar el producto.");
+        }
     };
 
     return (
@@ -96,13 +149,20 @@ export default function AddProductScreen({ navigation }) {
                         </View>
                         <View style={localStyles.column}>
                             <Text style={localStyles.label}>contenido neto</Text>
-                            <TextInput
-                                style={localStyles.input}
-                                placeholder="300 g"
-                                placeholderTextColor="#999"
-                                value={formData.contenidoNeto}
-                                onChangeText={(text) => handleInputChange('contenidoNeto', text)}
-                            />
+                            <View style={localStyles.unitInputContainer}>
+                                <TextInput
+                                    style={[localStyles.input, { flex: 1, marginBottom: 0 }]}
+                                    placeholder="125"
+                                    placeholderTextColor="#999"
+                                    keyboardType="numeric"
+                                    value={formData.contenidoNeto}
+                                    onChangeText={(text) => handleInputChange('contenidoNeto', text)}
+                                />
+                                <TouchableOpacity style={localStyles.unitSelector} onPress={toggleNetWeightUnit}>
+                                    <Text style={localStyles.unitText}>{netWeightUnit}</Text>
+                                    <ChevronDown size={16} color="#000" />
+                                </TouchableOpacity>
+                            </View>
                         </View>
                     </View>
 
@@ -192,7 +252,7 @@ export default function AddProductScreen({ navigation }) {
 
                     <TouchableOpacity 
                         style={localStyles.saveButton}
-                        onPress={() => console.log('Guardar producto', formData)}
+                        onPress={handleSave}
                     >
                         <Text style={localStyles.saveButtonText}>guardar</Text>
                     </TouchableOpacity>
@@ -200,10 +260,6 @@ export default function AddProductScreen({ navigation }) {
 
             </ScrollView>
 
-            <BottomNavBar 
-                currentScreen="Inventory" 
-                onSelectScreen={(screen) => navigation.navigate(screen)} 
-            />
         </KeyboardAvoidingView>
     );
 }

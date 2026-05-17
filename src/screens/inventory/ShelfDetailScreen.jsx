@@ -8,7 +8,10 @@ import TopHeader from '../../components/common/TopHeader';
 import { useCurrentUser } from '../../hooks/useCurrentUser';
 import { supabaseClient } from '../../api/supabaseClient';
 import CustomAlert from '../../components/common/CustomAlert';
+import { API_BASE_URL } from '../../constants/config';
 
+
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 export default function ShelfDetailScreen({ navigation, route }) {
     const { userRole } = useCurrentUser();
@@ -25,8 +28,18 @@ export default function ShelfDetailScreen({ navigation, route }) {
     
     useEffect(() => {
         const loadToken = async () => {
-            const { data } = await supabaseClient.auth.getSession();
-            if (data.session) setToken(data.session.access_token);
+            try {
+                const accessToken = await AsyncStorage.getItem('access_token');
+                if (accessToken) setToken(accessToken);
+                else {
+                    // Si no hay token, quitamos el loading para no dejar la pantalla infinita
+                    setLoading(false);
+                    Alert.alert("Error", "No se encontró sesión de usuario.");
+                }
+            } catch (error) {
+                console.error(error);
+                setLoading(false);
+            }
         };
         loadToken();
     }, []);
@@ -37,8 +50,8 @@ export default function ShelfDetailScreen({ navigation, route }) {
     
     const fetchShelfDetails = async () => {
         try {
-            const apiUrl = process.env.REACT_APP_API_URL || 'http://localhost:8000';
-            const response = await fetch(`${apiUrl}/api/v1/rpi/shelf/${shelfId}/full`, {
+            const apiUrl = API_BASE_URL;
+            const response = await fetch(`${apiUrl}/rpi/shelf/${shelfId}/full`, {
                 headers: { 'Authorization': `Bearer ${token}` }
             });
             if (!response.ok) throw new Error('Error al cargar');
@@ -56,8 +69,8 @@ export default function ShelfDetailScreen({ navigation, route }) {
     const updateShelfName = async () => {
         if (!editName.trim()) return;
         try {
-            const apiUrl = process.env.REACT_APP_API_URL || 'http://localhost:8000';
-            const response = await fetch(`${apiUrl}/api/v1/rpi/shelf/${shelfId}/name`, {
+            const apiUrl = API_BASE_URL;
+            const response = await fetch(`${apiUrl}/rpi/shelf/${shelfId}/name`, {
                 method: 'PATCH',
                 headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
                 body: JSON.stringify({ name: editName.trim() })
@@ -92,10 +105,10 @@ export default function ShelfDetailScreen({ navigation, route }) {
     };
     const saveBasicInfo = async () => {
         try {
-            const apiUrl = process.env.REACT_APP_API_URL || 'http://localhost:8000';
+            const apiUrl = API_BASE_URL;
             
             // Enviamos la actualización al endpoint de nombre (puedes replicar para producto)
-            const response = await fetch(`${apiUrl}/api/v1/rpi/shelf/${shelfId}/name`, {
+            const response = await fetch(`${apiUrl}/rpi/shelf/${shelfId}/name`, {
                 method: 'PATCH',
                 headers: { 
                     'Authorization': `Bearer ${token}`, 
@@ -124,10 +137,6 @@ export default function ShelfDetailScreen({ navigation, route }) {
             setAlertVisible(true);
         }
     };
-
-    <TouchableOpacity onPress={saveBasicInfo} style={localStyles.saveBtn}>
-        <Save size={18} color="#fff" />
-    </TouchableOpacity>
 
 
     if (loading) {
@@ -266,7 +275,6 @@ export default function ShelfDetailScreen({ navigation, route }) {
                     onClose={() => setAlertVisible(false)}
                 />
                 
-                <BottomNavBar currentScreen="Inventory" onSelectScreen={(screen) => navigation.navigate(screen)} />
         </View>
     );
 }

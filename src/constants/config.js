@@ -6,7 +6,7 @@ export const SUPABASE_CONFIG = {
 
 // Configuración de API
 export const API_CONFIG = {
-  baseURL: process.env.EXPO_PUBLIC_API_URL || 'http://localhost:8000/api/v1',
+  baseURL: process.env.EXPO_PUBLIC_API_URL || 'https://backendrackiq-production.up.railway.app/api/v1',
   timeout: 10000,
   headers: {
     'Content-Type': 'application/json',
