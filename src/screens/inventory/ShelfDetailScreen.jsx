@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView, TextInput, Alert, ActivityIndicator } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useFocusEffect } from '@react-navigation/native';
 import { ArrowLeft, Save, Edit2, Settings, AlertCircle } from 'lucide-react-native';
 import { globalStyles } from '../../../assets/styles/GlobalStyles';
 import BottomNavBar from '../../components/common/BottomNavBar';
@@ -47,6 +48,16 @@ export default function ShelfDetailScreen({ navigation, route }) {
     useEffect(() => {
         if (token && shelfId) fetchShelfDetails();
     }, [token, shelfId]);
+
+    // Refrescar datos cuando la pantalla se enfoca (ej: al volver de AddProductScreen)
+    useFocusEffect(
+        React.useCallback(() => {
+            if (token && shelfId) {
+                fetchShelfDetails();
+            }
+        }, [token, shelfId])
+    );
+    
     
     const fetchShelfDetails = async () => {
         try {
@@ -137,6 +148,47 @@ export default function ShelfDetailScreen({ navigation, route }) {
             setAlertVisible(true);
         }
     };
+
+    const handleProductUpdate = async (field, value) => {
+        if (!shelf || !shelf.product) return;
+        
+        try {
+            const apiUrl = API_BASE_URL;
+            const updateData = {};
+            
+            if (field === 'name') {
+                updateData.name = value;
+            } else if (field === 'weight') {
+                updateData.unit_weight_grams = parseFloat(value) || 0;
+            }
+            
+            const response = await fetch(`${apiUrl}/rpi/product/${shelf.product.id}`, {
+                method: 'PATCH',
+                headers: { 
+                    'Authorization': `Bearer ${token}`, 
+                    'Content-Type': 'application/json' 
+                },
+                body: JSON.stringify(updateData)
+            });
+
+            if (response.ok) {
+                // Actualizar el estado local
+                setShelf({
+                    ...shelf,
+                    product: {
+                        ...shelf.product,
+                        [field === 'name' ? 'name' : 'unit_weight_grams']: field === 'name' ? value : parseFloat(value)
+                    }
+                });
+            } else {
+                Alert.alert('Error', 'No se pudo actualizar el producto');
+            }
+        } catch (error) {
+            console.error(error);
+            Alert.alert('Error', 'Ocurrió un error al actualizar el producto');
+        }
+    };
+    
 
 
     if (loading) {

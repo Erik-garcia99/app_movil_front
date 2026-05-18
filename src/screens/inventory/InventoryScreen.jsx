@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Switch, Alert } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useFocusEffect } from '@react-navigation/native';
 import { Settings, ChevronDown, ArrowLeft, AlertCircle, Plus } from 'lucide-react-native';
 import { globalStyles } from '../../../assets/styles/GlobalStyles';
 import BottomNavBar from '../../components/common/BottomNavBar';
@@ -55,6 +56,15 @@ export default function InventoryScreen({ navigation }) {
             // Limpieza del listener cuando se desmonta el componente
             return unsubscribe;
         }, [navigation, token, branchId]);
+
+    // Refrescar datos cuando la pantalla se enfoca (para actualizar productos)
+    useFocusEffect(
+        React.useCallback(() => {
+            if (token && branchId && selectedNode) {
+                fetchNodes();
+            }
+        }, [token, branchId, selectedNode])
+    );
 
     const fetchNodes = async () => {
             try {
@@ -162,63 +172,96 @@ export default function InventoryScreen({ navigation }) {
 
 {/* --- NUEVA SECCIÓN: LISTA DE ESTANTES COMO EN LA IMAGEN --- */}
                 {selectedNode && displayShelves.map((shelf, index) => {
-                    // Lógica para determinar el estado real
-                    const hasProduct = shelf.product_id !== null;
-                    const isConfigured = shelf.max_capacity_grams > 0;
+                    // Obtener información del producto
+                    const product = shelf.product;
+                    const hasProduct = product !== null && product !== undefined;
+                    const productName = hasProduct ? product.name : '---';
                     
-                    // Simulación temporal del porcentaje basado en un cálculo ficticio 
-                    // (REEMPLAZAR LUEGO CON EL PESO REAL DEL BACKEND)
+                    // Validar si está configurado
+                    const isConfigured = shelf.max_capacity_grams > 0 && hasProduct;
+                    
+                    // Cálculo de estado
                     let percentage = 0;
                     let statusText = 'no configurado';
                     let barColor = '#D1DBE4'; // Gris por defecto
+                    let weightDisplay = '---';
                     
-                    if (hasProduct && isConfigured && shelf.is_connected) {
-                        // Calcular porcentaje real asegurando que no exceda 100 ni sea menor a 0
-                        let calcPercent = (shelf.current_weight_grams / shelf.max_capacity_grams) * 100;
+                    if (!shelf.is_connected && hasProduct && isConfigured) {
+                        statusText = 'sensor offline';
+                        barColor = '#EF4444';
+                    } else if (hasProduct && isConfigured && shelf.is_connected) {
+                        // Calcular porcentaje (máx 100%)
+                        const calcPercent = (shelf.current_weight_grams / shelf.max_capacity_grams) * 100;
                         percentage = Math.max(0, Math.min(100, Math.round(calcPercent)));
                         
-                        // Determinar umbral en gramos (si no existe, usar el 20% como default)
-                        const umbralGramos = shelf.low_stock_threshold_kg ? (shelf.low_stock_threshold_kg * 1000) : (shelf.max_capacity_grams * 0.2);
-                        const isOptimo = shelf.current_weight_grams > umbralGramos;
+                        // Determinar umbral en gramos
+                        const umbralGramos = shelf.low_stock_threshold_kg 
+                            ? (shelf.low_stock_threshold_kg * 1000) 
+                            : (shelf.max_capacity_grams * 0.2);
                         
+                        const isOptimo = shelf.current_weight_grams > umbralGramos;
                         statusText = isOptimo ? 'nivel optimo' : 'nivel critico';
                         barColor = isOptimo ? '#4ADE80' : '#FDE047';
-                    } else if (hasProduct && !shelf.is_connected) {
-                        statusText = 'sensor offline';
+                        
+                        // Convertir peso a kg para mejor legibilidad
+                        const weightKg = (shelf.current_weight_grams / 1000).toFixed(2);
+                        weightDisplay = `${weightKg} kg`;
                     } else if (!hasProduct) {
                         statusText = 'vacío / sin asignar';
                     }
 
                     return (
-                        <View key={shelf.id} style={localStyles.shelfCard}>
+                        <TouchableOpacity 
+                            key={shelf.id} 
+                            style={localStyles.shelfCard}
+                            onPress={() => navigation.navigate('ShelfDetail', {
+                                shelfId: shelf.id,
+                                gatewayIp: selectedNode.gateway_ip,
+                                nodeName: selectedNode.name,
+                                shelfName: shelf.name
+                            })}
+                        >
                             <View style={localStyles.shelfCardHeader}>
-                                <Text style={localStyles.shelfCardTitle}>
-                                    Estante {shelf.position}: - {hasProduct ? shelf.name : '---'}
-                                </Text>
-                                <TouchableOpacity onPress={() => navigation.navigate('ShelfDetail', {
-                                    shelfId: shelf.id,
-                                    gatewayIp: selectedNode.gateway_ip,
-                                    nodeName: selectedNode.name,
-                                    shelfName: shelf.name
-                                })}>
-                                    <AlertCircle size={28} color="#000" />
+                                <View style={localStyles.shelfCardTitleContainer}>
+                                    <Text style={localStyles.shelfCardTitle}>
+                                        Estante {shelf.position}
+                                    </Text>
+                                    {hasProduct && (
+                                        <Text style={localStyles.shelfCardProductName}>
+                                            {productName}
+                                        </Text>
+                                    )}
+                                </View>
+                                <TouchableOpacity 
+                                    style={localStyles.infoButton}
+                                    onPress={() => navigation.navigate('ShelfDetail', {
+                                        shelfId: shelf.id,
+                                        gatewayIp: selectedNode.gateway_ip,
+                                        nodeName: selectedNode.name,
+                                        shelfName: shelf.name
+                                    })}
+                                >
+                                    <AlertCircle size={24} color="#000" strokeWidth={2} />
                                 </TouchableOpacity>
                             </View>
 
                             <View style={localStyles.progressBarContainer}>
                                 <View style={[
                                     localStyles.progressBarFill,
-                                    { width: `${hasProduct && isConfigured ? percentage : 0}%`, backgroundColor: barColor }
+                                    { width: `${isConfigured && hasProduct ? percentage : 0}%`, backgroundColor: barColor }
                                 ]} />
                             </View>
 
                             <View style={localStyles.shelfCardFooter}>
                                 <Text style={localStyles.shelfCardPercentage}>
-                                    {hasProduct && isConfigured && shelf.is_connected ? `${percentage} %` : '---'}
+                                    {isConfigured && hasProduct ? `${percentage}%` : '---'}
+                                </Text>
+                                <Text style={[localStyles.shelfCardWeight, { color: '#666' }]}>
+                                    {weightDisplay}
                                 </Text>
                                 <Text style={localStyles.shelfCardStatus}>{statusText}</Text>
                             </View>
-                        </View>
+                        </TouchableOpacity>
                     );
                 })}
                 {/* --- FIN NUEVA SECCIÓN --- */}
@@ -267,14 +310,18 @@ const localStyles = StyleSheet.create({
     switchRow: { flexDirection: 'row', alignItems: 'center' },
     switchLabel: { fontSize: 16, color: '#1a1a1a', marginRight: 10, fontWeight: '500' },
     fab: { width: 50, height: 50, borderRadius: 25, borderWidth: 2, borderColor: '#000', justifyContent: 'center', alignItems: 'center', backgroundColor: 'transparent' },
-    shelfCard: { backgroundColor: '#F5EFEB', borderRadius: 12, padding: 15, marginBottom: 15 },
-    shelfCardHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 },
-    shelfCardTitle: { fontSize: 16, fontWeight: 'bold', color: '#000' },
-    progressBarContainer: { height: 16, backgroundColor: '#FFFFFF', borderRadius: 8, overflow: 'hidden', marginBottom: 8 },
-    progressBarFill: { height: '100%', borderRadius: 8 },
-    shelfCardFooter: { flexDirection: 'row', justifyContent: 'space-between' },
-    shelfCardPercentage: { fontSize: 14, fontWeight: '600', color: '#333' },
-    shelfCardStatus: { fontSize: 14, color: '#333' },
+    shelfCard: { backgroundColor: '#F5EFEB', borderRadius: 12, padding: 15, marginBottom: 15, borderWidth: 1, borderColor: '#E8DCC8' },
+    shelfCardHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 12 },
+    shelfCardTitleContainer: { flex: 1, marginRight: 10 },
+    shelfCardTitle: { fontSize: 16, fontWeight: '700', color: '#1a1a1a' },
+    shelfCardProductName: { fontSize: 14, fontWeight: '600', color: '#4A5568', marginTop: 4 },
+    infoButton: { padding: 4 },
+    progressBarContainer: { height: 18, backgroundColor: '#FFFFFF', borderRadius: 9, overflow: 'hidden', marginBottom: 10, borderWidth: 1, borderColor: '#E8DCC8' },
+    progressBarFill: { height: '100%', borderRadius: 9 },
+    shelfCardFooter: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 4 },
+    shelfCardPercentage: { fontSize: 14, fontWeight: '700', color: '#1a1a1a', minWidth: 40 },
+    shelfCardWeight: { fontSize: 12, fontWeight: '500', color: '#666', flex: 1, textAlign: 'center' },
+    shelfCardStatus: { fontSize: 13, color: '#666', fontWeight: '500', textAlign: 'right' },
 
 
 });
