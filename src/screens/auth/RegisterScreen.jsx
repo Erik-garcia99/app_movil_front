@@ -12,7 +12,7 @@ export default function RegisterScreen({ navigation }) {
     const [email, setEmail]                     = useState('');
     const [password, setPassword]               = useState('');
     const [confirmPassword, setConfirmPassword] = useState('');
-    const [branchCode, setBranchCode]           = useState('');
+    const [organizationToken, setOrganizationToken] = useState('');
     const [loading, setLoading]                 = useState(false);
 
     const [alertVisible, setAlertVisible] = useState(false);
@@ -25,7 +25,7 @@ export default function RegisterScreen({ navigation }) {
 
     const handleRegister = async () => {
         // Validaciones locales
-        if (!fullName || !email || !password || !branchCode) {
+        if (!fullName || !email || !password || !organizationToken) {
             showAlert('error', 'Campos incompletos', 'Llena todos los campos antes de continuar.',
                 () => setAlertVisible(false));
             return;
@@ -58,7 +58,7 @@ export default function RegisterScreen({ navigation }) {
                     full_name:   fullName.trim(),
                     email:       email.trim().toLowerCase(),
                     password:    password,
-                    branch_code: branchCode.trim().toUpperCase(),
+                    organization_token: organizationToken.trim(),
                     push_token:  fcmToken  // Enviar el token de Firebase
                 }),
             });
@@ -76,7 +76,15 @@ export default function RegisterScreen({ navigation }) {
                     }
                 );
             } else {
-                showAlert('error', 'Error', data.detail || 'No se pudo registrar.',
+                let errorMessage = 'No se pudo registrar.';
+                if (typeof data.detail === 'string') {
+                    errorMessage = data.detail;
+                } else if (Array.isArray(data.detail)) {
+                    errorMessage = data.detail.map(err => err.msg || JSON.stringify(err)).join('\n');
+                } else if (data.detail) {
+                    errorMessage = JSON.stringify(data.detail);
+                }
+                showAlert('error', 'Error', errorMessage,
                     () => setAlertVisible(false));
             }
         } catch (e) {
@@ -118,16 +126,16 @@ export default function RegisterScreen({ navigation }) {
                     <TextInput style={styles.input} value={confirmPassword}
                         onChangeText={setConfirmPassword} secureTextEntry={true} />
 
-                    <Text style={styles.label}>código de sucursal</Text>
+                    <Text style={styles.label}>token de organización</Text>
                     <TextInput
                         style={styles.input}
-                        placeholder="ej: BR-A1B2C3"
-                        value={branchCode}
-                        onChangeText={setBranchCode}
-                        autoCapitalize="characters"
+                        placeholder="ej: eKXZ0Bqd6FvYic..."
+                        value={organizationToken}
+                        onChangeText={setOrganizationToken}
+                        autoCapitalize="none"
                         placeholderTextColor="#B0B0B0"
                     />
-                    <Text style={styles.subtext}>código que te proporcionó tu administrador</Text>
+                    <Text style={styles.subtext}>token que te proporcionó tu administrador</Text>
                 </View>
 
                 <TouchableOpacity

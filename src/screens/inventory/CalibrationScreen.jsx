@@ -102,7 +102,7 @@ export default function CalibrationScreen({ navigation, route }) {
         const startTime = Date.now();
         
         // Obtener datos iniciales del estante
-        const initialShelf = await fetch(`${API_BASE_URL}/shelves/${shelfId}`, {
+        const initialShelf = await fetch(`${API_BASE_URL}/rpi/shelf/${shelfId}/full`, {
             headers: { 'Authorization': `Bearer ${token}` }
         }).then(r => r.json());
         
@@ -110,7 +110,7 @@ export default function CalibrationScreen({ navigation, route }) {
         
         // Polling hasta que se actualice last_calibrated_at
         while (Date.now() - startTime < timeoutMs) {
-            const currentShelf = await fetch(`${API_BASE_URL}/shelves/${shelfId}`, {
+            const currentShelf = await fetch(`${API_BASE_URL}/rpi/shelf/${shelfId}/full`, {
                 headers: { 'Authorization': `Bearer ${token}` }
             }).then(r => r.json());
             
@@ -188,7 +188,7 @@ export default function CalibrationScreen({ navigation, route }) {
         const startTime = Date.now();
         
         // Obtener datos iniciales del estante
-        const initialShelf = await fetch(`${API_BASE_URL}/shelves/${shelfId}`, {
+        const initialShelf = await fetch(`${API_BASE_URL}/rpi/shelf/${shelfId}/full`, {
             headers: { 'Authorization': `Bearer ${token}` }
         }).then(r => r.json());
         
@@ -196,7 +196,7 @@ export default function CalibrationScreen({ navigation, route }) {
         
         // Polling hasta que scale_factor cambien (indican que se aplicó la calibración)
         while (Date.now() - startTime < timeoutMs) {
-            const currentShelf = await fetch(`${API_BASE_URL}/shelves/${shelfId}`, {
+            const currentShelf = await fetch(`${API_BASE_URL}/rpi/shelf/${shelfId}/full`, {
                 headers: { 'Authorization': `Bearer ${token}` }
             }).then(r => r.json());
             
