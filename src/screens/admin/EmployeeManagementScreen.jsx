@@ -6,27 +6,28 @@ import {
     TouchableOpacity, 
     ScrollView, 
     RefreshControl,
-    ActivityIndicator,
-    Modal
+    ActivityIndicator
 } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ArrowLeft, ChevronRight } from 'lucide-react-native';
 import { globalStyles } from '../../../assets/styles/GlobalStyles';
 import BottomNavBar from '../../components/common/BottomNavBar';
 import TopHeader from '../../components/common/TopHeader';
 import CustomAlert from '../../components/common/CustomAlert';
 import { useCurrentUser } from '../../hooks/useCurrentUser';
+import { useBranches } from '../../hooks/useBranches';
 import { usersAPI } from '../../api/users';
 import EmployeeStatusModal from '../../components/admin/EmployeeStatusModal';
 
 export default function EmployeeManagementScreen({ navigation }) {
-    const insets = useSafeAreaInsets();
     const { userRole } = useCurrentUser();
+    const { branches } = useBranches();
     const [employees, setEmployees] = useState([]);
     const [loading, setLoading] = useState(true);
     const [refreshing, setRefreshing] = useState(false);
     const [selectedEmployee, setSelectedEmployee] = useState(null);
     const [showStatusModal, setShowStatusModal] = useState(false);
+    const [supervisors, setSupervisors] = useState([]);
+    const [loadingSupervisors, setLoadingSupervisors] = useState(false);
     const [alert, setAlert] = useState({ visible: false, type: 'success', title: '', message: '' });
 
     useEffect(() => {
@@ -59,16 +60,69 @@ export default function EmployeeManagementScreen({ navigation }) {
     const handleSelectEmployee = (employee) => {
         setSelectedEmployee(employee);
         setShowStatusModal(true);
+
+        if (employee?.branch_id) {
+            loadSupervisors(employee.branch_id);
+        } else {
+            setSupervisors([]);
+        }
     };
 
-    const handleStatusChange = async (newStatus) => {
+    const loadSupervisors = async (branchId) => {
+        if (!branchId) {
+            setSupervisors([]);
+            return;
+        }
+
         try {
-            const result = await usersAPI.updateUserStatus(selectedEmployee.id, newStatus);
+            setLoadingSupervisors(true);
+            const data = await usersAPI.getBranchSupervisors(branchId);
+            setSupervisors(data);
+        } catch (error) {
+            setSupervisors([]);
+            setAlert({
+                visible: true,
+                type: 'error',
+                title: 'Error',
+                message: error.message || 'No se pudieron cargar los supervisores'
+            });
+        } finally {
+            setLoadingSupervisors(false);
+        }
+    };
+
+    const handleBranchChange = async (branchId) => {
+        await loadSupervisors(branchId);
+    };
+
+    const handleSaveAuthorization = async ({ branchId, supervisorId, status }) => {
+        if (!branchId) {
+            setAlert({
+                visible: true,
+                type: 'error',
+                title: 'Error',
+                message: 'Debes seleccionar una sucursal'
+            });
+            return;
+        }
+
+        if (!supervisorId) {
+            setAlert({
+                visible: true,
+                type: 'error',
+                title: 'Error',
+                message: 'Debes seleccionar un jefe directo'
+            });
+            return;
+        }
+
+        try {
+            await usersAPI.assignBranch(selectedEmployee.id, branchId, supervisorId, status);
             setAlert({
                 visible: true,
                 type: 'success',
                 title: 'Éxito',
-                message: result.message
+                message: 'El empleado fue autorizado y asignado correctamente'
             });
             setShowStatusModal(false);
             await loadEmployees();
@@ -77,7 +131,7 @@ export default function EmployeeManagementScreen({ navigation }) {
                 visible: true,
                 type: 'error',
                 title: 'Error',
-                message: error.detail || 'No se pudo actualizar el estado'
+                message: error.message || 'No se pudo guardar la asignación'
             });
         }
     };
@@ -176,7 +230,11 @@ export default function EmployeeManagementScreen({ navigation }) {
             <EmployeeStatusModal
                 visible={showStatusModal}
                 employee={selectedEmployee}
-                onStatusChange={handleStatusChange}
+                branches={branches}
+                supervisors={supervisors}
+                loadingSupervisors={loadingSupervisors}
+                onBranchChange={handleBranchChange}
+                onSave={handleSaveAuthorization}
                 onClose={() => setShowStatusModal(false)}
             />
 

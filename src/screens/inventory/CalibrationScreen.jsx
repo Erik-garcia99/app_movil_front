@@ -8,6 +8,7 @@ import BottomNavBar from '../../components/common/BottomNavBar';
 import TopHeader from '../../components/common/TopHeader';
 import { useCurrentUser } from '../../hooks/useCurrentUser';
 import { API_BASE_URL } from '../../constants/config';
+import { Picker } from '@react-native-picker/picker';
 
 export default function CalibrationScreen({ navigation, route }) {
     const { userRole } = useCurrentUser();
@@ -21,6 +22,7 @@ export default function CalibrationScreen({ navigation, route }) {
     const [currentWeight, setCurrentWeight] = useState(null);
     const [token, setToken] = useState(null);
     const [tokenLoading, setTokenLoading] = useState(true);
+    const [weightUnit, setWeightUnit] = useState('kg'); // 'kg', 'g', 'oz', 'lb'
 
     // Obtener token de AsyncStorage
     useEffect(() => {
@@ -125,15 +127,13 @@ export default function CalibrationScreen({ navigation, route }) {
         
         throw new Error('Timeout esperando confirmación de calibración');
     };
-    
+   
     const handleScale = async () => {
-        // Si el token aún está cargando, espera
         if (tokenLoading) {
             Alert.alert('Espera', 'La sesión se está cargando...');
             return;
         }
-        
-        // Si no hay token, intenta cargar de nuevo
+
         let currentToken = token;
         if (!currentToken) {
             try {
@@ -143,18 +143,41 @@ export default function CalibrationScreen({ navigation, route }) {
                 console.error('Error cargando token:', error);
             }
         }
-        
+
         if (!currentToken) {
             Alert.alert('Error de autenticación', 'No hay sesión activa. Por favor, cierra sesión y vuelve a iniciar.');
             return;
         }
-        
-        const weight = parseFloat(referenceWeight);
-        if (isNaN(weight) || weight <= 0) {
-            Alert.alert('Error', 'Ingresa un peso válido en kilogramos');
+
+        const rawValue = parseFloat(referenceWeight);
+        if (isNaN(rawValue) || rawValue <= 0) {
+            Alert.alert('Error', 'Ingresa un peso válido positivo');
             return;
         }
-        
+
+        let weightInKg = 0;
+        switch (weightUnit) {
+            case 'kg':
+                weightInKg = rawValue;
+                break;
+            case 'g':
+                weightInKg = rawValue / 1000;
+                break;
+            case 'oz':
+                weightInKg = rawValue * 0.0283495;
+                break;
+            case 'lb':
+                weightInKg = rawValue * 0.453592;
+                break;
+            default:
+                weightInKg = rawValue;
+        }
+
+        if (weightInKg <= 0.001) {
+            Alert.alert('Error', 'El peso de referencia es demasiado pequeño. Usa al menos 1g o equivalente.');
+            return;
+        }
+
         setCalibrating(true);
         try {
             const response = await fetch(`${API_BASE_URL}/rpi/calibrate/${shelfId}/scale`, {
@@ -163,17 +186,16 @@ export default function CalibrationScreen({ navigation, route }) {
                     'Authorization': `Bearer ${currentToken}`,
                     'Content-Type': 'application/json'
                 },
-                body: JSON.stringify({ reference_weight_kg: weight })
+                body: JSON.stringify({ reference_weight_kg: weightInKg })  // ← CORREGIDO
             });
-            
+
             if (!response.ok) {
                 const errorData = await response.json();
                 throw new Error(errorData.detail || 'Error al calibrar');
             }
-            
-            // Esperar confirmación desde el servidor (polling)
-            await waitForScaleCalibrationResult(currentToken, 30000); // timeout 30s
-            
+
+            await waitForScaleCalibrationResult(currentToken, 30000);
+
             setCalibrating(false);
             setStep(3);
             setResult({ success: true, message: 'Calibración exitosa' });
@@ -182,8 +204,9 @@ export default function CalibrationScreen({ navigation, route }) {
             Alert.alert('Error', `No se pudo calibrar: ${error.message}`);
             setCalibrating(false);
         }
-    };
-    
+    };  
+     
+     
     const waitForScaleCalibrationResult = async (token, timeoutMs = 30000) => {
         const startTime = Date.now();
         
@@ -193,14 +216,22 @@ export default function CalibrationScreen({ navigation, route }) {
         }).then(r => r.json());
         
         const initialScaleFactor = initialShelf.scale_factor || 1.0;
+        const initialLastCalibrated = initialShelf.last_calibrated_at;
         
-        // Polling hasta que scale_factor cambien (indican que se aplicó la calibración)
+        // Polling hasta que el backend confirme la calibración.
+        // last_calibrated_at es la señal principal; el cambio de scale_factor queda como refuerzo.
         while (Date.now() - startTime < timeoutMs) {
             const currentShelf = await fetch(`${API_BASE_URL}/rpi/shelf/${shelfId}/full`, {
                 headers: { 'Authorization': `Bearer ${token}` }
             }).then(r => r.json());
             
             const currentScaleFactor = currentShelf.scale_factor || 1.0;
+            const currentLastCalibrated = currentShelf.last_calibrated_at;
+
+            if (currentLastCalibrated && currentLastCalibrated !== initialLastCalibrated) {
+                console.log(`[CalibrationScreen] Calibración confirmada en BD: ${initialLastCalibrated} -> ${currentLastCalibrated}`);
+                return;
+            }
             
             // Si el factor de escala cambió significativamente, calibración exitosa
             if (Math.abs(currentScaleFactor - initialScaleFactor) > 0.01) {
@@ -257,24 +288,40 @@ export default function CalibrationScreen({ navigation, route }) {
                         <Text style={localStyles.title}>Paso 2: Peso de referencia</Text>
                         <Text style={localStyles.description}>
                             1. Coloca un objeto con peso conocido en el estante.{'\n'}
-                            2. Ingresa el peso exacto en kilogramos.
+                            2. Ingresa el peso exacto y selecciona la unidad.
                         </Text>
                         <View style={localStyles.weightContainer}>
                             <Text style={localStyles.weightLabel}>Peso detectado:</Text>
                             <Text style={localStyles.weightValue}>{currentWeight ? `${currentWeight} Kg` : '---'}</Text>
                         </View>
-                        <TextInput
-                            style={localStyles.input}
-                            placeholder="Peso real (kg)"
-                            keyboardType="numeric"
-                            value={referenceWeight}
-                            onChangeText={setReferenceWeight}
-                        />
+
+                        <View style={localStyles.inputRow}>
+                            <TextInput
+                                style={[localStyles.input, { flex: 1, marginRight: 10 }]}
+                                placeholder="Peso"
+                                keyboardType="numeric"
+                                value={referenceWeight}
+                                onChangeText={setReferenceWeight}
+                            />
+                            <View style={localStyles.pickerContainer}>
+                                <Picker
+                                    selectedValue={weightUnit}
+                                    onValueChange={(itemValue) => setWeightUnit(itemValue)}
+                                    style={localStyles.picker}
+                                >
+                                    <Picker.Item label="kg" value="kg" />
+                                    <Picker.Item label="g" value="g" />
+                                    <Picker.Item label="oz" value="oz" />
+                                    <Picker.Item label="lb" value="lb" />
+                                </Picker>
+                            </View>
+                        </View>
+
                         <TouchableOpacity style={localStyles.button} onPress={handleScale} disabled={calibrating}>
                             <Text style={localStyles.buttonText}>{calibrating ? 'Calibrando...' : 'Calibrar'}</Text>
                         </TouchableOpacity>
                     </View>
-                )}
+                )}                     
                 
                 {step === 3 && result && (
                     <View style={localStyles.card}>
@@ -323,5 +370,22 @@ const localStyles = StyleSheet.create({
     button: { backgroundColor: '#354A5F', paddingVertical: 14, borderRadius: 8, alignItems: 'center' },
     buttonText: { color: '#fff', fontWeight: '600', fontSize: 16 },
     successText: { fontSize: 16, color: '#4CAF50', textAlign: 'center', marginVertical: 10 },
-    errorText: { fontSize: 16, color: '#F44336', textAlign: 'center', marginVertical: 10 }
+    errorText: { fontSize: 16, color: '#F44336', textAlign: 'center', marginVertical: 10 },
+    inputRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 20,
+},
+pickerContainer: {
+    borderWidth: 1,
+    borderColor: '#ddd',
+    borderRadius: 8,
+    backgroundColor: '#fff',
+    overflow: 'hidden',
+    width: 100,
+},
+picker: {
+    height: 50,
+    width: '100%',
+},
 });

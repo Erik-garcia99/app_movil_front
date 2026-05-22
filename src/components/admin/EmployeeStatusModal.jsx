@@ -1,27 +1,54 @@
-import React, { useState } from 'react';
-import { View, Text, StyleSheet, Modal, TouchableOpacity } from 'react-native';
-import { X, AlertCircle } from 'lucide-react-native';
+import React, { useEffect, useState } from 'react';
+import { View, Text, StyleSheet, Modal, TouchableOpacity, ScrollView, ActivityIndicator } from 'react-native';
+import { X, CheckCircle2 } from 'lucide-react-native';
 
-export default function EmployeeStatusModal({ visible, employee, onStatusChange, onClose }) {
-    const [selectedStatus, setSelectedStatus] = useState(null);
+export default function EmployeeStatusModal({
+    visible,
+    employee,
+    branches = [],
+    supervisors = [],
+    loadingSupervisors = false,
+    onBranchChange,
+    onSave,
+    onClose,
+}) {
+    const [selectedBranchId, setSelectedBranchId] = useState(null);
+    const [selectedSupervisorId, setSelectedSupervisorId] = useState(null);
+    const [selectedStatus, setSelectedStatus] = useState('active');
+
+    useEffect(() => {
+        if (!visible || !employee) {
+            return;
+        }
+
+        setSelectedBranchId(employee.branch_id || null);
+        setSelectedSupervisorId(employee.supervisor_id || null);
+        setSelectedStatus(employee.account_status === 'pending' ? 'active' : employee.account_status || 'active');
+    }, [visible, employee]);
 
     if (!visible || !employee) return null;
 
     const statusOptions = [
-        { value: 'active', label: 'Activar empleado', color: '#4CAF50' },
-        { value: 'suspended', label: 'Suspender empleado', color: '#FF5722' },
-        { value: 'deleted', label: 'Eliminar empleado', color: '#9E9E9E' },
+        { value: 'active', label: 'Autorizar acceso' },
+        { value: 'suspended', label: 'Suspender' },
+        { value: 'deleted', label: 'Eliminar' },
     ];
 
-    const handleStatusSelect = (status) => {
-        setSelectedStatus(status);
+    const handleBranchSelect = (branchId) => {
+        setSelectedBranchId(branchId);
+        setSelectedSupervisorId(null);
+
+        if (onBranchChange) {
+            onBranchChange(branchId);
+        }
     };
 
-    const handleConfirm = () => {
-        if (selectedStatus) {
-            onStatusChange(selectedStatus);
-            setSelectedStatus(null);
-        }
+    const handleSave = () => {
+        onSave({
+            branchId: selectedBranchId,
+            supervisorId: selectedSupervisorId,
+            status: selectedStatus,
+        });
     };
 
     return (
@@ -34,43 +61,93 @@ export default function EmployeeStatusModal({ visible, employee, onStatusChange,
             <View style={styles.overlay}>
                 <View style={styles.modalContainer}>
                     <View style={styles.header}>
-                        <Text style={styles.headerTitle}>estatus empleado</Text>
+                        <View>
+                            <Text style={styles.headerTitle}>autorizar empleado</Text>
+                            <Text style={styles.headerSubtitle}>asigna sucursal y jefe directo</Text>
+                        </View>
                         <TouchableOpacity onPress={onClose} style={styles.closeButton}>
                             <X size={24} color="#000" strokeWidth={2.5} />
                         </TouchableOpacity>
                     </View>
 
-                    <View style={styles.content}>
+                    <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
                         <View style={styles.employeeInfo}>
                             <Text style={styles.employeeName}>{employee.name}</Text>
                             <Text style={styles.employeeEmail}>{employee.email}</Text>
                         </View>
 
-                        <Text style={styles.sectionTitle}>nuevo cargo</Text>
+                        <Text style={styles.sectionTitle}>sucursal</Text>
+                        <View style={styles.optionsBlock}>
+                            {branches.length > 0 ? branches.map((branch) => (
+                                <TouchableOpacity
+                                    key={branch.id}
+                                    style={[
+                                        styles.optionRow,
+                                        selectedBranchId === branch.id && styles.optionRowSelected,
+                                    ]}
+                                    onPress={() => handleBranchSelect(branch.id)}
+                                >
+                                    <View style={styles.radioButton}>
+                                        {selectedBranchId === branch.id && <View style={styles.radioButtonInner} />}
+                                    </View>
+                                    <View style={styles.optionTextBlock}>
+                                        <Text style={styles.optionTitle}>{branch.name}</Text>
+                                        {branch.address ? <Text style={styles.optionSubtitle}>{branch.address}</Text> : null}
+                                    </View>
+                                </TouchableOpacity>
+                            )) : (
+                                <Text style={styles.emptyText}>No hay sucursales disponibles</Text>
+                            )}
+                        </View>
 
-                        {statusOptions.map((option) => (
-                            <TouchableOpacity
-                                key={option.value}
-                                style={[
-                                    styles.statusOption,
-                                    selectedStatus === option.value && styles.statusOptionSelected
-                                ]}
-                                onPress={() => handleStatusSelect(option.value)}
-                            >
-                                <View style={styles.radioButton}>
-                                    {selectedStatus === option.value && (
-                                        <View style={styles.radioButtonInner} />
-                                    )}
-                                </View>
-                                <Text style={[
-                                    styles.statusOptionLabel,
-                                    selectedStatus === option.value && styles.statusOptionLabelSelected
-                                ]}>
-                                    {option.label}
-                                </Text>
-                            </TouchableOpacity>
-                        ))}
-                    </View>
+                        <Text style={styles.sectionTitle}>jefe directo</Text>
+                        <View style={styles.optionsBlock}>
+                            {!selectedBranchId ? (
+                                <Text style={styles.emptyText}>Primero selecciona una sucursal</Text>
+                            ) : loadingSupervisors ? (
+                                <ActivityIndicator size="small" color="#354A5F" />
+                            ) : supervisors.length > 0 ? supervisors.map((supervisor) => (
+                                <TouchableOpacity
+                                    key={supervisor.id}
+                                    style={[
+                                        styles.optionRow,
+                                        selectedSupervisorId === supervisor.id && styles.optionRowSelected,
+                                    ]}
+                                    onPress={() => setSelectedSupervisorId(supervisor.id)}
+                                >
+                                    <View style={styles.radioButton}>
+                                        {selectedSupervisorId === supervisor.id && <View style={styles.radioButtonInner} />}
+                                    </View>
+                                    <View style={styles.optionTextBlock}>
+                                        <Text style={styles.optionTitle}>{supervisor.name}</Text>
+                                        <Text style={styles.optionSubtitle}>{supervisor.role}{supervisor.branch_name ? ` • ${supervisor.branch_name}` : ''}</Text>
+                                    </View>
+                                    {selectedSupervisorId === supervisor.id && <CheckCircle2 size={18} color="#354A5F" />}
+                                </TouchableOpacity>
+                            )) : (
+                                <Text style={styles.emptyText}>No hay jefes válidos para esta sucursal</Text>
+                            )}
+                        </View>
+
+                        <Text style={styles.sectionTitle}>estado final</Text>
+                        <View style={styles.optionsBlock}>
+                            {statusOptions.map((option) => (
+                                <TouchableOpacity
+                                    key={option.value}
+                                    style={[
+                                        styles.optionRow,
+                                        selectedStatus === option.value && styles.optionRowSelected,
+                                    ]}
+                                    onPress={() => setSelectedStatus(option.value)}
+                                >
+                                    <View style={styles.radioButton}>
+                                        {selectedStatus === option.value && <View style={styles.radioButtonInner} />}
+                                    </View>
+                                    <Text style={styles.optionTitle}>{option.label}</Text>
+                                </TouchableOpacity>
+                            ))}
+                        </View>
+                    </ScrollView>
 
                     <View style={styles.footer}>
                         <TouchableOpacity
@@ -82,12 +159,12 @@ export default function EmployeeStatusModal({ visible, employee, onStatusChange,
                         <TouchableOpacity
                             style={[
                                 styles.confirmButton,
-                                !selectedStatus && { opacity: 0.5 }
+                                (!selectedBranchId || !selectedSupervisorId) && { opacity: 0.5 }
                             ]}
-                            onPress={handleConfirm}
-                            disabled={!selectedStatus}
+                            onPress={handleSave}
+                            disabled={!selectedBranchId || !selectedSupervisorId}
                         >
-                            <Text style={styles.confirmButtonText}>OK</Text>
+                            <Text style={styles.confirmButtonText}>Guardar</Text>
                         </TouchableOpacity>
                     </View>
                 </View>
@@ -108,7 +185,8 @@ const styles = StyleSheet.create({
         backgroundColor: '#FFFFFF',
         borderRadius: 12,
         width: '100%',
-        maxWidth: 400,
+        maxWidth: 420,
+        maxHeight: '90%',
         shadowColor: '#000',
         shadowOffset: { width: 0, height: 2 },
         shadowOpacity: 0.25,
@@ -130,15 +208,21 @@ const styles = StyleSheet.create({
         fontWeight: '700',
         color: '#000',
     },
+    headerSubtitle: {
+        fontSize: 12,
+        color: '#666',
+        marginTop: 2,
+    },
     closeButton: {
         padding: 4,
     },
     content: {
         paddingHorizontal: 20,
         paddingVertical: 20,
+        gap: 12,
     },
     employeeInfo: {
-        marginBottom: 20,
+        marginBottom: 4,
         paddingBottom: 15,
         borderBottomWidth: 1,
         borderBottomColor: '#e0e0e0',
@@ -155,24 +239,45 @@ const styles = StyleSheet.create({
     },
     sectionTitle: {
         fontSize: 14,
-        fontWeight: '600',
+        fontWeight: '700',
         color: '#333',
-        marginBottom: 12,
+        marginBottom: 6,
     },
-    statusOption: {
+    optionsBlock: {
+        gap: 8,
+    },
+    optionRow: {
         flexDirection: 'row',
         alignItems: 'center',
         paddingVertical: 12,
         paddingHorizontal: 12,
-        marginBottom: 10,
         borderWidth: 1,
         borderColor: '#e0e0e0',
         borderRadius: 8,
         backgroundColor: '#F9F9F9',
+        gap: 12,
     },
-    statusOptionSelected: {
+    optionRowSelected: {
         borderColor: '#354A5F',
         backgroundColor: '#EFF3F8',
+    },
+    optionTextBlock: {
+        flex: 1,
+    },
+    optionTitle: {
+        fontSize: 14,
+        color: '#333',
+        fontWeight: '600',
+    },
+    optionSubtitle: {
+        fontSize: 12,
+        color: '#666',
+        marginTop: 2,
+    },
+    emptyText: {
+        fontSize: 13,
+        color: '#666',
+        paddingVertical: 4,
     },
     radioButton: {
         width: 20,
@@ -180,7 +285,6 @@ const styles = StyleSheet.create({
         borderRadius: 10,
         borderWidth: 2,
         borderColor: '#999',
-        marginRight: 12,
         justifyContent: 'center',
         alignItems: 'center',
     },
@@ -189,15 +293,6 @@ const styles = StyleSheet.create({
         height: 10,
         borderRadius: 5,
         backgroundColor: '#354A5F',
-    },
-    statusOptionLabel: {
-        fontSize: 14,
-        color: '#333',
-        flex: 1,
-    },
-    statusOptionLabelSelected: {
-        fontWeight: '600',
-        color: '#000',
     },
     footer: {
         flexDirection: 'row',

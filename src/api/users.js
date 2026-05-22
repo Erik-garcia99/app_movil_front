@@ -57,6 +57,29 @@ export const usersAPI = {
         }
     },
 
+    // Obtener supervisores disponibles para una sucursal
+    getBranchSupervisors: async (branchId) => {
+        try {
+            const token = await getAuthToken();
+            const response = await fetch(`${API_BASE_URL}/users/supervisors?branch_id=${branchId}`, {
+                method: 'GET',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`,
+                },
+            });
+
+            if (!response.ok) {
+                const errorData = await response.json().catch(() => ({}));
+                throw new Error(errorData.detail || `HTTP error! status: ${response.status}`);
+            }
+
+            return await response.json();
+        } catch (error) {
+            throw error;
+        }
+    },
+
     // Actualizar el estado de un empleado
     updateUserStatus: async (userId, status) => {
         try {
@@ -101,6 +124,40 @@ export const usersAPI = {
                 throw new Error(`HTTP error! status: ${response.status}`);
             }
             
+            return await response.json();
+        } catch (error) {
+            throw error;
+        }
+    },
+
+    // Asignar sucursal, supervisor y estatus en una sola operación
+    assignBranch: async (userId, branchId, supervisorId = null, status = null) => {
+        try {
+            const token = await getAuthToken();
+            const payload = { branch_id: branchId };
+
+            if (supervisorId) {
+                payload.supervisor_id = supervisorId;
+            }
+
+            if (status) {
+                payload.status = status;
+            }
+
+            const response = await fetch(`${API_BASE_URL}/users/${userId}/assign-branch`, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`,
+                },
+                body: JSON.stringify(payload),
+            });
+
+            if (!response.ok) {
+                const errorData = await response.json().catch(() => ({}));
+                throw new Error(errorData.detail || `HTTP error! status: ${response.status}`);
+            }
+
             return await response.json();
         } catch (error) {
             throw error;
