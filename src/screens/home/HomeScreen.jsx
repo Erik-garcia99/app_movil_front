@@ -36,9 +36,11 @@ export default function HomeScreen({ navigation }) {
             <View style={globalStyles.container}>
                 {/* TopHeader - El mismo para todas las pantallas */}
                 <TopHeader 
-                    navigation={navigation} 
-                    branchName={currentBranch.name}
-                    userRole={userRole}
+                	navigation={navigation} 
+                	userRole={userRole} 
+                	branches={branches} 
+                	currentBranch={currentBranch} 
+                	onSelectBranch={selectBranch} 
                 />
 
                 {/* Dashboard Content */}

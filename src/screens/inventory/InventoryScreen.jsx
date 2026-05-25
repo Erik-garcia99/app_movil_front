@@ -178,20 +178,27 @@ export default function InventoryScreen({ navigation }) {
                     const productName = hasProduct ? product.name : '---';
                     
                     // Validar si está configurado
-                    const isConfigured = shelf.max_capacity_grams > 0 && hasProduct;
+                    //const isConfigured = shelf.max_capacity_grams > 0 && hasProduct;
+                    
+                    const maxCapacity = shelf.max_capacity_grams > 0 
+    			? shelf.max_capacity_grams 
+    			: 20000; // fallback 20kg en gramos
+                    
+                    const isConfigured = hasProduct; 
                     
                     // Cálculo de estado
                     let percentage = 0;
                     let statusText = 'no configurado';
                     let barColor = '#D1DBE4'; // Gris por defecto
                     let weightDisplay = '---';
+                    let unitsDisplay = '---';
                     
                     if (!shelf.is_connected && hasProduct && isConfigured) {
                         statusText = 'sensor offline';
                         barColor = '#EF4444';
                     } else if (hasProduct && isConfigured && shelf.is_connected) {
                         // Calcular porcentaje (máx 100%)
-                        const calcPercent = (shelf.current_weight_grams / shelf.max_capacity_grams) * 100;
+                        const calcPercent = (shelf.current_weight_grams / maxCapacity) * 100;
                         percentage = Math.max(0, Math.min(100, Math.round(calcPercent)));
                         
                         // Determinar umbral en gramos
@@ -206,6 +213,16 @@ export default function InventoryScreen({ navigation }) {
                         // Convertir peso a kg para mejor legibilidad
                         const weightKg = (shelf.current_weight_grams / 1000).toFixed(2);
                         weightDisplay = `${weightKg} kg`;
+                        
+                        // Calcular Unidades usando el peso unitario del producto
+                        if (product.unit_weight_grams > 0) {
+                            const units = Math.floor(shelf.current_weight_grams / product.unit_weight_grams);
+                            unitsDisplay = `${units} uds`;
+                        } else {
+                            unitsDisplay = 'uds n/a'; // Si el producto no tiene peso unitario configurado
+                        }
+                        
+                        
                     } else if (!hasProduct) {
                         statusText = 'vacío / sin asignar';
                     }
@@ -256,11 +273,17 @@ export default function InventoryScreen({ navigation }) {
                                 <Text style={localStyles.shelfCardPercentage}>
                                     {isConfigured && hasProduct ? `${percentage}%` : '---'}
                                 </Text>
-                                <Text style={[localStyles.shelfCardWeight, { color: '#666' }]}>
-                                    {weightDisplay}
+                                <Text style={[localStyles.shelfCardWeight, { color: '#666', textAlign: 'center', flex: 1 }]}>
+                                    {isConfigured && hasProduct ? weightDisplay : '---'}
+                                </Text>
+                                {/* Novedad: Agregamos las unidades en medio */}
+                                <Text style={[localStyles.shelfCardWeight, { color: '#666', textAlign: 'center', flex: 1 }]}>
+                                    {isConfigured && hasProduct ? unitsDisplay : '---'}
                                 </Text>
                                 <Text style={localStyles.shelfCardStatus}>{statusText}</Text>
                             </View>
+                            
+                            
                         </TouchableOpacity>
                     );
                 })}
@@ -275,7 +298,18 @@ export default function InventoryScreen({ navigation }) {
                 <View style={localStyles.bottomControls}>
                     <View style={localStyles.switchRow}>
                         <Text style={localStyles.switchLabel}>modo surtido</Text>
-                        <Switch value={isSurtidoMode} onValueChange={setIsSurtidoMode} />
+                        <Switch 
+                        	value={isSurtidoMode} 
+                        	onValueChange={(val) => { 
+                        		setIsSurtidoMode(val);
+                        		
+                        		if(val) {
+            				// Apaga el switch visualmente aquí para que cuando regreses esté apagado
+            					setIsSurtidoMode(false); 
+            					navigation.navigate('SurtidoSetup', { branchId: branchId });
+            				}
+            			}} 
+            		/>
                     </View>
                     <TouchableOpacity 
                         style={localStyles.fab} 

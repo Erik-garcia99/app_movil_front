@@ -19,6 +19,10 @@ import EmployeeManagementScreen from '../screens/admin/EmployeeManagementScreen'
 import ShelfDetailScreen from '../screens/inventory/ShelfDetailScreen';
 import CalibrationScreen from '../screens/inventory/CalibrationScreen';
 import RegisterNodeScreen from '../screens/inventory/RegisterNodeScreen';
+import SurtidoSetupScreen from '../screens/inventory/SurtidoSetupScreen';
+import SurtidoIngresoScreen from '../screens/inventory/SurtidoIngresoScreen';
+import SurtidoValidacionScreen from '../screens/inventory/SurtidoValidacionScreen';
+import SurtidoExitoScreen from '../screens/inventory/SurtidoExitoScreen';
 
 
 
@@ -46,6 +50,10 @@ export default function AppNavigator() {
             <Stack.Screen name="ShelfDetail" component={ShelfDetailScreen} />
             <Stack.Screen name="Calibration" component={CalibrationScreen} />
             <Stack.Screen name="RegisterNode" component={RegisterNodeScreen} />
+            <Stack.Screen name="SurtidoSetup" component={SurtidoSetupScreen} />
+            <Stack.Screen name="SurtidoIngreso" component={SurtidoIngresoScreen} />
+            <Stack.Screen name="SurtidoValidacion" component={SurtidoValidacionScreen} />
+            <Stack.Screen name="SurtidoExito" component={SurtidoExitoScreen} />
 
         </Stack.Navigator>
         </NavigationContainer>
