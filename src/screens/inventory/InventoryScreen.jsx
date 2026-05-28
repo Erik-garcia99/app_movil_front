@@ -14,7 +14,7 @@ import { API_BASE_URL } from '../../constants/config';
 
 export default function InventoryScreen({ navigation }) {
     const { userRole, user } = useCurrentUser();
-    const { currentBranch } = useBranches();
+    const { branches, currentBranch, selectBranch } = useBranches();
     const insets = useSafeAreaInsets();
     const [selectedNode, setSelectedNode] = useState(null);
     const [selectedShelf, setSelectedShelf] = useState(null);
@@ -66,6 +66,18 @@ export default function InventoryScreen({ navigation }) {
         }, [token, branchId, selectedNode])
     );
 
+    // Auto-refresh cada 10 segundos cuando hay un nodo seleccionado
+    useEffect(() => {
+        if (!selectedNode || !token || !branchId) return;
+
+        const refreshInterval = setInterval(() => {
+            console.log('DEBUG: Auto-refresh triggered for node:', selectedNode.name);
+            fetchNodes();
+        }, 10000);  // Cada 10 segundos
+
+        return () => clearInterval(refreshInterval);
+    }, [token, branchId]);
+
     const fetchNodes = async () => {
             try {
                 setLoading(true);
@@ -77,10 +89,22 @@ export default function InventoryScreen({ navigation }) {
                 const data = await response.json();
                 
                 // 1. Filtramos los nodos que YA tienen un nombre asignado por el usuario
-                const configuredNodes = data.filter(n => !n.name.startsWith('Nodo-'));
+                const configuredNodes = (data.nodes || []).filter(n => !n.name.startsWith('Nodo-'));
                 
                 // 2. Guardamos SOLO los nodos filtrados en el estado
                 setNodes(configuredNodes);
+                
+                // 3. Si hay un nodo seleccionado, SINCRONIZAR con los datos nuevos
+                if (selectedNode) {
+                    const updatedNode = configuredNodes.find(n => n.id === selectedNode.id);
+                    if (updatedNode) {
+                        // Actualizar AMBOS estados para mantener sincronización
+                        setSelectedNode(updatedNode);
+                        setShelves(updatedNode.shelves || []);
+                        console.log('DEBUG: Nodo sincronizado:', updatedNode.name);
+                        console.log('DEBUG: Estantes actualizados:', updatedNode.shelves);
+                    }
+                }
                 
             } catch (error) {
                 console.error(error);
@@ -125,7 +149,9 @@ export default function InventoryScreen({ navigation }) {
             <TopHeader 
                 navigation={navigation} 
                 userRole={userRole} 
-                branchName={currentBranch ? currentBranch.name : 'Cargando...'} 
+                branches={branches}
+                currentBranch={currentBranch}
+                onSelectBranch={selectBranch}
             />
             <View style={localStyles.subHeader}>
                 <TouchableOpacity onPress={() => navigation.goBack()} style={{ padding: 4 }}>
@@ -151,20 +177,35 @@ export default function InventoryScreen({ navigation }) {
                             {nodes.length === 0 ? (
                                 <View style={localStyles.dropdownItem}><Text style={localStyles.dropdownItemText}>No hay nodos disponibles</Text></View>
                             ) : (
-                                nodes.map(node => (
-                                    <TouchableOpacity 
-                                        key={node.id} 
-                                        style={[localStyles.dropdownItem, selectedNode?.id === node.id && localStyles.dropdownItemSelected]} 
-                                        onPress={() => handleNodeSelect(node)}
-                                    >
-                                        <View style={{ flex: 1 }}>
-                                            <Text style={localStyles.dropdownItemText}>{node.name}</Text>
-                                            <Text style={localStyles.dropdownItemSubtext}>
-                                                {node.is_online ? '🟢 Online' : '🔴 Offline'} • {node.shelves?.length || 0} estantes
-                                            </Text>
-                                        </View>
-                                    </TouchableOpacity>
-                                ))
+                                nodes.map(node => {
+                                    // Determinar color basado en status
+                                    const statusColor = node.status === 'online' ? '#10B981' : '#EF4444';
+                                    const statusIcon = node.status === 'online' ? '🟢' : '🔴';
+                                    const statusText = node.status === 'online' ? 'Online' : 'Offline';
+                                    
+                                    return (
+                                        <TouchableOpacity 
+                                            key={node.id} 
+                                            style={[localStyles.dropdownItem, selectedNode?.id === node.id && localStyles.dropdownItemSelected]} 
+                                            onPress={() => handleNodeSelect(node)}
+                                        >
+                                            <View style={{ flex: 1 }}>
+                                                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                                                    <View style={{ 
+                                                        width: 10, 
+                                                        height: 10, 
+                                                        borderRadius: 5, 
+                                                        backgroundColor: statusColor 
+                                                    }} />
+                                                    <Text style={localStyles.dropdownItemText}>{node.name}</Text>
+                                                </View>
+                                                <Text style={[localStyles.dropdownItemSubtext, { color: statusColor, marginLeft: 18 }]}>
+                                                    {statusIcon} {statusText} • {node.shelves?.length || 0} estantes
+                                                </Text>
+                                            </View>
+                                        </TouchableOpacity>
+                                    );
+                                })
                             )}
                         </View>
                     )}
@@ -193,10 +234,10 @@ export default function InventoryScreen({ navigation }) {
                     let weightDisplay = '---';
                     let unitsDisplay = '---';
                     
-                    if (!shelf.is_connected && hasProduct && isConfigured) {
+                    if (shelf.status === 'offline' && hasProduct && isConfigured) {
                         statusText = 'sensor offline';
                         barColor = '#EF4444';
-                    } else if (hasProduct && isConfigured && shelf.is_connected) {
+                    } else if (hasProduct && isConfigured && shelf.status === 'online') {
                         // Calcular porcentaje (máx 100%)
                         const calcPercent = (shelf.current_weight_grams / maxCapacity) * 100;
                         percentage = Math.max(0, Math.min(100, Math.round(calcPercent)));

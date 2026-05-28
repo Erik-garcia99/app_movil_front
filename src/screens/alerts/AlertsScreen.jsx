@@ -6,14 +6,22 @@ import { globalStyles } from '../../../assets/styles/GlobalStyles';
 import BottomNavBar from '../../components/common/BottomNavBar';
 import TopHeader from '../../components/common/TopHeader';
 import { useCurrentUser } from '../../hooks/useCurrentUser';
+import { useBranches } from '../../hooks/useBranches';
 export default function AlertsScreen({ navigation }) {
     const { userRole } = useCurrentUser();
+    const { branches, currentBranch, selectBranch } = useBranches();
     const insets = useSafeAreaInsets(); 
 
     return (
         <View style={[globalStyles.container, { backgroundColor: '#607D8B' }]}>
 
-            <TopHeader navigation={navigation} userRole={userRole} />
+            <TopHeader 
+                navigation={navigation} 
+                userRole={userRole}
+                branches={branches}
+                currentBranch={currentBranch}
+                onSelectBranch={selectBranch}
+            />
 
             <View style={localStyles.subHeader}>
                 <TouchableOpacity onPress={() => navigation.goBack()} style={{ padding: 4 }}>

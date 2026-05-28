@@ -239,8 +239,8 @@ export default function ShelfDetailScreen({ navigation, route }) {
                     
                     <View style={localStyles.row}>
                         <Text style={localStyles.label}>Estado:</Text>
-                        <Text style={[localStyles.value, { color: shelf.is_connected ? '#4CAF50' : '#FF9800' }]}>
-                            {shelf.is_connected ? 'Conectado' : 'Desconectado'}
+                        <Text style={[localStyles.value, { color: shelf.status === 'online' ? '#4CAF50' : '#FF9800' }]}>
+                            {shelf.status === 'online' ? 'En línea' : 'Desconectado'}
                         </Text>
                     </View>
                     

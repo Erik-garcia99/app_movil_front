@@ -24,10 +24,7 @@ export default function BranchSelector({ branches, currentBranch, onSelectBranch
                 }}
                 activeOpacity={0.7}
             >
-                <View>
-                    <Text style={styles.branchName}>{displayName}</Text>
-                    <Text style={styles.branchCount}>{branchCount} sucursal{branchCount !== 1 ? 'es' : ''}</Text>
-                </View>
+                <Text style={styles.branchName}>{displayName}</Text>
                 <ChevronDown size={18} color="#000" />
             </TouchableOpacity>
 
@@ -99,14 +96,10 @@ const styles = StyleSheet.create({
         flex: 1,
     },
     branchName: {
-        fontSize: 14,
+        fontSize: 12,
         fontWeight: '600',
         color: '#000',
-    },
-    branchCount: {
-        fontSize: 11,
-        color: '#999',
-        marginTop: 2,
+        flex: 1,
     },
     modalOverlay: {
         flex: 1,
